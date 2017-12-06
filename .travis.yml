@@ -1,11 +1,10 @@
 dist: trusty
 sudo: required # for building gtest
 
-language: cpp
+
 
 matrix:
   include:
-
 
     - os: linux
       addons:
@@ -14,9 +13,10 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-7
+            - libgoogle-glog-dev
+            - libgtest-dev
       env:
         - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
-
 
 
     - os: linux
@@ -26,6 +26,8 @@ matrix:
             - llvm-toolchain-trusty-5.0
           packages:
             - clang-5.0
+            - libgoogle-glog-dev
+            - libgtest-dev
       env:
         - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
 
@@ -37,17 +39,9 @@ before_install:
   - eval "${MATRIX_EVAL}"
 
 
-
-addons:
-  apt:
-    packages:
-      # dependencies
-      - libgoogle-glog-dev
-      - libgtest-dev
-      #- libeigen3-dev
-
 install:
   - travis/fix-gtest.sh
+
 
 script:
   # build
