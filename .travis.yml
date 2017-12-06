@@ -15,6 +15,7 @@ matrix:
             - ubuntu-toolchain-r-test
           packages:
             - g++-7
+            # dependencies
             - libgoogle-glog-dev
             - libgtest-dev
       env:
@@ -28,6 +29,8 @@ matrix:
             - llvm-toolchain-trusty-5.0
           packages:
             - clang-5.0
+            - libstdc++-7-dev
+            # dependencies
             - libgoogle-glog-dev
             - libgtest-dev
       env:
