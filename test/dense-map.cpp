@@ -293,7 +293,7 @@ TEST(Performance, Deque_dense_map) {
 
 	EXPECT_EQ(my_result, other_result);
 
-	EXPECT_LT(my_time, other_time * 4);
+	EXPECT_LT(my_time, other_time * 5);
 }
 
 
@@ -680,7 +680,7 @@ TEST(Performance, Vector_dense_map_noerase) {
 	EXPECT_EQ(my_result, other_result);
 
 	//EXPECT_LT(my_time, other_time); // it's actually less... (?!) in g++-7
-	EXPECT_LT(my_time, other_time*2); // for clang++-5.0
+	EXPECT_LT(my_time, other_time*3); // for clang++-5.0
 }
 
 
