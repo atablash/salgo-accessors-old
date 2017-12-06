@@ -18,7 +18,7 @@ matrix:
             - libgoogle-glog-dev
             - libgtest-dev
       env:
-        - MATRIX_EVAL="CC=gcc-7 && CXX=g++-7"
+        - MATRIX_EVAL="export CC=gcc-7 && export CXX=g++-7"
 
 
     - os: linux
@@ -31,7 +31,7 @@ matrix:
             - libgoogle-glog-dev
             - libgtest-dev
       env:
-        - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
+        - MATRIX_EVAL="export CC=clang-5.0 && export CXX=clang++-5.0"
 
 
 
