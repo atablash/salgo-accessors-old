@@ -1,0 +1,35 @@
+dist: trusty
+sudo: required # for building gtest
+
+language: cpp
+compiler:
+  - g++-7
+  - clang++-5.0
+
+addons:
+  apt:
+    sources:
+      # C++17
+      - ubuntu-toolchain-r-test
+    packages:
+      # C++17
+      - g++-7
+      # dependencies
+      - libgoogle-glog-dev
+      - libgtest-dev
+      #- libeigen3-dev
+      
+#before_install:
+#  - export CXX=g++-7
+
+install:
+  - travis/fix-gtest.sh
+
+script:
+  # build
+  - cmake -D SALGO_BUILD_TESTS=ON .
+  - make VERBOSE=1
+  - ctest --verbose
+
+notifications:
+  email: false
