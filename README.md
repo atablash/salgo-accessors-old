@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/atablash/salgo.svg?branch=master)](https://travis-ci.org/atablash/salgo)
+
 # Why?
 
 * Easy to use modern C++ interface
