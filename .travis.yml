@@ -2,6 +2,8 @@ dist: trusty
 sudo: required # for building gtest
 
 
+language: cpp
+
 
 matrix:
   include:
@@ -37,7 +39,6 @@ matrix:
 
 before_install:
   - eval "${MATRIX_EVAL}"
-
 
 install:
   - travis/fix-gtest.sh
