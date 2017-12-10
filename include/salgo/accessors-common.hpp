@@ -9,7 +9,6 @@
 namespace salgo {
 
 
-namespace internal {
 
 //
 // const flag
@@ -31,7 +30,9 @@ template<class T, Const_Flag c> using Const = std::conditional_t<c == CONST, con
 
 
 
-
+//
+// proxy
+//
 template<class T, Const_Flag C>
 class Proxy {
 public:
@@ -66,6 +67,22 @@ private:
 	explicit Proxy(Const<T,C>& r) : ref(r) {}
 	Const<T,C>& ref;
 };
+
+
+
+
+
+
+
+
+
+
+
+
+namespace internal {
+
+
+
 
 
 

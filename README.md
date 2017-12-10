@@ -13,7 +13,7 @@ Why?
 
 
 
-Using the library
+Library Design
 =================
 
 The library is contained in `salgo` namespace, so either type `salgo::` explicitly every time (especially in header files or in case of name conflicts), or just use:
@@ -62,13 +62,13 @@ In the above example, `e.val` is still not the underlying `double` or reference 
 ```
 
 
-### Story behind accessors
+### Story Behind Accessors
 
 Let's talk about **pointers** in *C*.
 
-*Pointing* object *const*-ness is different than *pointed* object *const*-ness:
- * `const int*` (or `int const*`) is a pointer to `const int`
- * `int* const` is a *const* pointer to `int`
+_Pointing_ object *const*-ness is different than *pointed* object *const*-ness:
+* `const int*` (or `int const*`) is a pointer to `const int`
+* `int* const` is a *const* pointer to `int`
 
 The latter (a *const* pointer) comes in a different semantic form in `C++`: a **reference**. This allows using a declared *reference*'s name as an alias for the pointed object.
  * Note that a *reference* is not only an alias, but also has an associated storage, just like a *pointer* (unless optimized-out by compiler of course). However, contrary to pointers, this storage is not exposed to programmer, and as one consequence it's always *const* conceptually.
@@ -87,8 +87,8 @@ There's another analogy: just like *STL iterators* are abstraction over *pointer
 ### Accessor *const*-ness
 
 Since *pointed object* *const*-ness is different from *accessor* *const*-ness, all accessor types come in two flavors:
- * `A_Array_Element<MUTAB>`
- * `A_Array_Element<CONST>`
+* `A_Array_Element<MUTAB>`
+* `A_Array_Element<CONST>`
 
 The first one allows modification of the *pointed object*, while the latter does not.
 
@@ -108,15 +108,86 @@ You might think this won't work the same way as *references* do, because it's no
 However, Salgo passes *const*-ness of an accessor to the underlying vertex.
 
 Generally, the *pointed object* is considered *const*, if at least one of the conditions is true:
- * The *accessor* object is *const*
- * Its `Const_Flag` template argument equals `CONST`
+* The *accessor* object is *const*
+* Its `Const_Flag` template argument equals `CONST`
 
 
-### Salgo Accessor vs Salgo iterator
+### Salgo Accessor vs Salgo Iterator
 
 Unlike *STL iterators*, *Salgo iterators* are an implementation detail internal to the library, and shouldn't be used directly.
 
 They exist only to support the range-based *for* loop (`for(auto e : v)`) internally.
+
+
+### Extending the Default Accessors
+
+You can extend Salgo containers' accessors with custom functionality.
+
+Below you can see an example from the Smesh library. Dense_Map's accessor is extended to provide an interface for underlying triangle mesh vertices:
+
+```cpp
+	template<Const_Flag C, class OWNER, class BASE>
+	class A_Vert_Template : public BASE {
+	public:
+		// Support assignment (handled by BASE):
+		using BASE::operator=;
+
+		// Keep a reference to the mesh object
+		using Context = Const<Smesh,C>&; // keep a reference to the mesh object
+
+		Proxy<Pos,C> pos;
+		Proxy<Vert_Props,C> props;
+
+		A_Poly_Links<C> hverts;
+
+		// Replace the Dense_Map's erase() with a different version
+		void erase() {
+			// Erase adjacent polygons:
+			for(auto hv : hverts) {
+				hv.poly.erase();
+			}
+
+			// Finally, use the regular Dense_Map's erase()
+			// to remove this vertex
+			BASE::erase();
+		}
+
+		A_Vert_Template( Context m, Const<OWNER,C>& o, const int i) : BASE(o, i),
+				pos( o.raw(i).pos ),
+				props( o.raw(i) ),
+				poly_links(m, i) {}
+	};
+```
+
+Here you can see the *2-way CRTP* pattern in action: both your derived class and base class know about each other.
+
+In the above example, you can see an extension to the `Dense_Map`, that exposes some additional interface:
+* `pos`: a pseudo-reference to vertex position
+* `props`: a pseudo-reference to vertex properties
+* `hverts`: a pseudo-reference to *vertex->polygon* links list
+* `erase()`: replaces the regular `Dense_Map`'s `erase()` with a version specific to our mesh structure
+
+Template arguments are:
+* `Const_Flag C`: will be instantiated with either `MUTAB` or `CONST`, for forcing pointed object (vertex in this case) *const*-ness
+* `OWNER`: it's a reference to the *Dense_Map* object
+	* Technically it's the parent part of the context; the design decision was to keep them separate though, for simplicity
+* `BASE`: that's our base, for the *2-way CRTP*
+
+There are some helper classes / alias templates:
+* `Const<class T, Const_Flag>`: resolves to either `T` or `const T`
+* `Proxy<class T, Const_Flag>`: pretends to be a reference to T, but passes *const*-ness of _*this_ to *T*
+	* Use `operator()` to explicitly convert to `T&`
+
+If you don't want any extra context, remove the `using Context = ...` line, and the first argument of the constructor (`Context m`).
+
+If you need multiple level accessor inheritance, see how *2-way CRTP* chaining is implemented in *Binary_Tree*. If the most derived accessor needs some additional context, it must aggregate it with the parent context, e.g. `using Context = std::pair<Child_Context, BASE::Context>`.
+
+To use your new accessor with the *Dense_Map*:
+
+```cpp
+	using Verts_Map = Dense_Map<Vertex>::BUILDER::Accessor_Template<A_Vert_Templace>::BUILD;
+	Verts_Map my_verts_map( my_mesh_context );
+```
 
 
 
@@ -142,20 +213,26 @@ Dense_Map
  * It exposes all the accessor machinery of course
 
 ```cpp
-	Dense_Map<int> m = {-1, 2, -3, 4, -12};
+	Dense_Map<int> m = {-1, 2, -3, 4, -12}; // creates elements at keys 0,1,2,3,4
+
+	m[10] = 1; // ...and one more element at key 10
 
 	for(auto e : m) if(e < 0) e.erase();
 
 	int sum = 0;
 	for(auto e : m) sum += e;
 
-	cout << sum << endl; // prints 6
+	cout << sum << endl; // prints 7
 ```
 
 
 ### Type Builder
 
-By default, a full-blown object with all the functionality is constructed.
+By default, a full-blown object with all the functionality is constructed:
+
+```cpp
+	Dense_Map<int> m;
+```
 
 If you want a custom object, use the `BUILDER`:
 
@@ -167,6 +244,7 @@ The `BUILDER` supports following settings:
  * `Vector` - use the `std::vector` version of the *Dense_Map*: keys will start from 0
  * `Deque` - use the `std::deque` version of the *Dense_Map*: keys can start from arbitrary integer
  * `Erasable` - elements can be erased, leaving "holes" that still occupy memory
+ * `Accessor_Template` - a template for extending the default accessor, using *2-way CRTP* pattern (see the relevant section)
 
 To get the bare minimum (*Vector* version, not *Erasable*), just don't supply any options:
 
@@ -177,7 +255,37 @@ To get the bare minimum (*Vector* version, not *Erasable*), just don't supply an
 
 ### Construction
 
-TODO
+Without any arguments, to create an empty `Dense_Map` that will start inserting elements at key *0*:
+
+```cpp
+	Dense_Map<int> dm;
+```
+
+To start inserting elements at key *42*:
+
+```cpp
+	Dense_Map<int> dm( 42 );
+```
+
+From an initializer list:
+
+```cpp
+	Dense_Map<int> dm = {1,3,-5,100}; // will create elements at keys 0,1,2,3
+```
+
+If you use a custom derived accessor with context, you must provide the context on `Dense_Map` construction:
+
+```cpp
+	using DM = Dense_Map<int>::BUILDER::Accessor_Template< My_Custom_Accessor >::BUILD;
+	DM dm( some_context );
+```
+
+
+### Other Members
+
+* `size()`: returns number of elements
+* ~~`front()`: returns the first element~~ (not implemented yet)
+* ~~`back()`: returns the last element~~ (not implemented yet)
 
 
 ### Notes
@@ -211,7 +319,7 @@ So don't worry about the performance too much. Check the `test` directory or Tra
 
 
 
-Backward compatibility and versioning
+Backward Compatibility and Versioning
 =====================================
 
 This project is at a very early stage of implementation, so there's no backward compatibility, and not even a notion of versions. Just pick the latest commit to `master` branch that passes the Travis build.
