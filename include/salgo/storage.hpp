@@ -89,10 +89,10 @@ namespace internal {
 	>
 	using Dense_Map_Base = typename std::conditional_t<
 		bool(FLAGS & STORAGE_ERASABLE),
-		typename Dense_Map_Builder<Storage_Key<TYPE>,T>::template Add_Flags<ERASABLE>,
-		typename Dense_Map_Builder<Storage_Key<TYPE>,T>::template Rem_Flags<ERASABLE>>
-		::template Type<VECTOR>
-		::template Accessor_Template<ACCESSOR_TEMPLATE> :: Build;
+		typename Dense_Map<Storage_Key<TYPE>,T>::BUILDER::Erasable,
+		typename Dense_Map<Storage_Key<TYPE>,T>::BUILDER>
+		::Vector
+		::template Accessor_Template<ACCESSOR_TEMPLATE> :: BUILD;
 
 
 

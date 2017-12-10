@@ -17,44 +17,30 @@ namespace salgo {
 
 
 
-enum class Dense_Map_Type {
-	VECTOR,
-	DEQUE
-};
-
-namespace {
-	constexpr auto VECTOR = Dense_Map_Type::VECTOR;
-	constexpr auto DEQUE  = Dense_Map_Type::DEQUE;
-}
 
 
 
-
-
-
-enum class Dense_Map_Flags {
-	NONE = 0,
-	ERASABLE = 0x0001
-};
-
-ENABLE_BITWISE_OPERATORS(Dense_Map_Flags);
-
-namespace {
-	constexpr auto ERASABLE = Dense_Map_Flags::ERASABLE;
-}
 
 
 namespace internal {
+namespace Dense_Map {
+
+
+
+	enum class Type {
+		VECTOR,
+		DEQUE
+	};
 
 
 
 	// for Dense_Map
-	template<bool> class Add_Member_offset {protected: int offset = 0; };
-	template<>     class Add_Member_offset <false> {};
+	template<bool> class Add_offset {protected: int offset = 0; };
+	template<>     class Add_offset <false> {};
 
 	// for Node
-	template<bool> struct Add_Member_exists { bool exists = false; };
-	template<>     struct Add_Member_exists <false> {};
+	template<bool> struct Add_exists { bool exists = false; };
+	template<>     struct Add_exists <false> {};
 
 	// for Dense_Map (can't use this...)
 	//template<bool, class T> struct Add_Member_context { T context = T(); };
@@ -65,12 +51,6 @@ namespace internal {
 
 
 
-
-	constexpr auto default__Dense_Map_Flags = ERASABLE;
-	constexpr auto default__Dense_Map_Type = VECTOR;
-
-	template<Const_Flag C, class OWNER, class BASE>
-	using Default__Dense_Map_Accessor_Template = Index_Accessor_Template<C, OWNER, BASE>;
 
 
 
@@ -87,13 +67,13 @@ namespace internal {
 	// TODO: implement a linked version to jump empty spaces faster
 	//
 	template<
-		class Value_Or_Key,
-		class Void_Or_Value,
-		Dense_Map_Flags FLAGS,
-		Dense_Map_Type TYPE,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE
+		class VALUE_OR_KEY,
+		class VOID_OR_VALUE,
+		Type TYPE,
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		bool ERASABLE
 	>
-	class Dense_Map : public internal::Add_Member_offset<TYPE == DEQUE> {
+	class Dense_Map : public Add_offset<TYPE == Type::DEQUE> {
 
 		// forward declarations
 		public: template<Const_Flag C> class Accessor_Base;
@@ -101,11 +81,11 @@ namespace internal {
 
 
 	public:
-		using Key = std::conditional_t<std::is_same_v<Void_Or_Value,void>, int, Value_Or_Key>;
-		using Value = std::conditional_t<std::is_same_v<Void_Or_Value,void>, Value_Or_Key, Void_Or_Value>;
+		using Key = std::conditional_t<std::is_same_v<VOID_OR_VALUE,void>, int, VALUE_OR_KEY>;
+		using Value = std::conditional_t<std::is_same_v<VOID_OR_VALUE,void>, VALUE_OR_KEY, VOID_OR_VALUE>;
 
-		static constexpr auto Flags = FLAGS;
-		using Container = std::conditional_t<TYPE == VECTOR, std::vector<Node>, std::deque<Node>>;
+		static constexpr auto Erasable = ERASABLE;
+		using Container = std::conditional_t<TYPE == Type::VECTOR, std::vector<Node>, std::deque<Node>>;
 
 		template<Const_Flag C>
 		using Accessor = ACCESSOR_TEMPLATE<C, Dense_Map, Accessor_Base<C>>;
@@ -160,7 +140,7 @@ namespace internal {
 		}
 
 		Dense_Map(Key new_offset)
-				: internal::Add_Member_offset<TYPE == DEQUE>(new_offset) {
+				: Add_offset<TYPE == Type::DEQUE>(new_offset) {
 
 			static_assert(!has_context, "you have to provide context");
 		}
@@ -291,6 +271,7 @@ namespace internal {
 
 
 			void erase() {
+				static_assert(ERASABLE, "can't erase, Dense_Map declared not Erasable");
 				DCHECK(key - owner.get_offset() < (int)owner._raw.size());
 				DCHECK(_raw().exists);
 				_raw().exists = false;
@@ -310,7 +291,7 @@ namespace internal {
 
 				static_assert(C == MUTAB, "assignment to const accessor");
 
-				if constexpr(TYPE==DEQUE) {
+				if constexpr(TYPE == Type::DEQUE) {
 					if(owner._raw.empty()) {
 							owner.offset = key;
 							_idx = 0;
@@ -329,7 +310,7 @@ namespace internal {
 					owner._raw.resize(_idx + 1);
 				}
 
-				if constexpr(bool(Flags & ERASABLE)) _raw().exists = true;
+				if constexpr(ERASABLE) _raw().exists = true;
 				_raw().value = std::forward<TT>(new_value);
 				return owner.template create_accessor<C>(_idx);
 			}
@@ -488,20 +469,20 @@ namespace internal {
 		// data
 	private:
 
-		struct Node : internal::Add_Member_exists<bool(Flags & ERASABLE)> {
+		struct Node : Add_exists<ERASABLE> {
 
 			Node() = default;
 
 			template<class... Args>
 			Node(Args&&... args) : value(std::forward<Args>(args)...) {
-				if constexpr(bool(Flags & ERASABLE)) {
-					internal::Add_Member_exists<bool(Flags & ERASABLE)>::exists = true;
+				if constexpr(ERASABLE) {
+					Add_exists<ERASABLE>::exists = true;
 				}
 			}
 
 			inline bool get_exists() const {
-				if constexpr(bool(Flags & ERASABLE)) {
-					return internal::Add_Member_exists<bool(Flags & ERASABLE)>::exists;
+				if constexpr(ERASABLE) {
+					return Add_exists<ERASABLE>::exists;
 				}
 				else return true;
 			}
@@ -512,7 +493,7 @@ namespace internal {
 		Container _raw;
 
 		inline Key get_offset() const {
-			if constexpr(TYPE==DEQUE) return internal::Add_Member_offset<TYPE == DEQUE>::offset;
+			if constexpr(TYPE == Type::DEQUE) return Add_offset<TYPE == Type::DEQUE>::offset;
 			else return 0;
 		}
 
@@ -521,7 +502,46 @@ namespace internal {
 
 
 
-} // internal
+
+
+
+
+
+
+	//
+	// BUILDER
+	//
+	template<
+		class Value_Or_Key,
+		class Void_Or_Value,
+		Type TYPE,
+		template<internal::Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		bool ERASABLE
+	>
+	class Builder {
+
+	public:
+		using BUILD = internal::Dense_Map::Dense_Map<Value_Or_Key, Void_Or_Value, TYPE, ACCESSOR_TEMPLATE, ERASABLE>;
+
+		using Vector
+			= Builder<Value_Or_Key, Void_Or_Value, Type::VECTOR, ACCESSOR_TEMPLATE, ERASABLE>;
+
+		using Deque
+			= Builder<Value_Or_Key, Void_Or_Value, Type::DEQUE, ACCESSOR_TEMPLATE, ERASABLE>;
+
+		using Erasable
+			= Builder<Value_Or_Key, Void_Or_Value, TYPE, ACCESSOR_TEMPLATE, true>;
+		
+		template<template<internal::Const_Flag,class,class> class NEW_TMPL>
+		using Accessor_Template
+			= Builder<Value_Or_Key, Void_Or_Value, TYPE, NEW_TMPL, ERASABLE>;
+
+	};
+
+
+
+} // namespace Dense_Map
+} // namespace internal
 
 
 
@@ -532,69 +552,26 @@ namespace internal {
 
 
 
-//
-// W/O BUILDER
-//
+
 template<
 	class Value_Or_Key,
 	class Void_Or_Value = void
 >
-using Dense_Map = internal::Dense_Map<
+struct Dense_Map : internal::Dense_Map::Dense_Map<
 	Value_Or_Key,
 	Void_Or_Value,
-	internal::default__Dense_Map_Flags,
-	internal::default__Dense_Map_Type,
-	internal::Default__Dense_Map_Accessor_Template
->;
-
-
-
-
-
-
-
-
-
-
-//
-// BUILDER
-//
-template<
-	class Value_Or_Key,
-	class Void_Or_Value = void,
-	Dense_Map_Flags FLAGS = internal::default__Dense_Map_Flags,
-	Dense_Map_Type TYPE = internal::default__Dense_Map_Type,
-	template<internal::Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Dense_Map_Accessor_Template
->
-class Dense_Map_Builder {
-
-public:
-	using Build = internal::Dense_Map<Value_Or_Key, Void_Or_Value, FLAGS, TYPE, ACCESSOR_TEMPLATE>;
-
-	template<Dense_Map_Type NEW_TYPE>
-	using Type
-		= Dense_Map_Builder<Value_Or_Key, Void_Or_Value, FLAGS, NEW_TYPE, ACCESSOR_TEMPLATE>;
-	
-	template<template<internal::Const_Flag,class,class> class NEW_TMPL>
-	using Accessor_Template
-		= Dense_Map_Builder<Value_Or_Key, Void_Or_Value, FLAGS, TYPE, NEW_TMPL>;
-
-
-	template<Dense_Map_Flags NEW_FLAGS>
-	using Flags
-		= Dense_Map_Builder<Value_Or_Key, Void_Or_Value, NEW_FLAGS, TYPE, ACCESSOR_TEMPLATE>;
-
-	template<Dense_Map_Flags NEW_FLAGS>
-	using Add_Flags
-		= Dense_Map_Builder<Value_Or_Key, Void_Or_Value, FLAGS |  NEW_FLAGS, TYPE, ACCESSOR_TEMPLATE>;
-
-	template<Dense_Map_Flags NEW_FLAGS>
-	using Rem_Flags
-		= Dense_Map_Builder<Value_Or_Key, Void_Or_Value, FLAGS & ~NEW_FLAGS, TYPE, ACCESSOR_TEMPLATE>;
+	internal::Dense_Map::Type::DEQUE,
+	internal::Index_Accessor_Template,
+	true // erasable
+> {
+	using BUILDER = internal::Dense_Map::Builder<
+		Value_Or_Key,
+		Void_Or_Value,
+		internal::Dense_Map::Type::VECTOR,
+		internal::Index_Accessor_Template,
+		false // erasable
+	>;
 };
-
-
-
 
 
 
