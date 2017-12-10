@@ -19,21 +19,29 @@ namespace salgo {
 
 
 
-//
-// FORWARD
-//
-template<
-	class T,
-	Binary_Tree_Flags FLAGS,
-	template<Const_Flag,class,class> class ACCESSOR_TEMPLATE
->
-class Binary_Tree;
 
 
 
 
 
 namespace internal {
+
+
+
+
+
+	//
+	// FORWARD
+	//
+	template<
+		class T,
+		Binary_Tree_Flags FLAGS,
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE
+	>
+	class Binary_Tree;
+
+
+
 
 	template<class T, Binary_Tree_Flags FLAGS, template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE>
 	struct Binary_Tree_T {
@@ -101,7 +109,7 @@ namespace internal {
 		public:
 			inline auto operator()() const {
 				auto idx = acc().get_child_idx(ith);
-				return acc()._tree[ child ? acc().raw.children[idx] : acc().raw.parent ];
+				return acc()._tree[ child ? acc().val().children[idx] : acc().val().parent ];
 			}
 
 			template<class... Args>
@@ -112,23 +120,25 @@ namespace internal {
 			}
 
 			template<Const_Flag CC, bool ch = child, class = std::enable_if_t<ch>>
-			inline void link(const Accessor_Template<CC,OWNER,BASE>& other) {
+			inline void link(Accessor_Template<CC,OWNER,BASE>& other) {
 				auto idx = acc().get_child_idx(ith);
 				DCHECK_GE(idx, 0);
 				DCHECK_LE(idx, 1);
-				DCHECK_EQ(Key(), acc().raw.children[idx]);
-				acc().raw.children[idx] = other.key;
+				DCHECK_EQ(Key(), acc().val().children[idx]);
+				acc().val().children[idx] = other.key;
 
-				DCHECK_EQ(Key(), other.raw.parent);
-				other.raw.parent = acc().key;
+				if constexpr(bool(FLAGS & BT_VERTS_ERASABLE)) {
+					DCHECK_EQ(Key(), other.val().parent);
+					other.val().parent = acc().key;
+				}
 			}
 
 			inline operator bool() const {
 				if constexpr(child) {
 					auto idx = acc().get_child_idx(ith);
-					return acc().raw.children[idx] != Key();
+					return acc().val().children[idx] != Key();
 				}
-				else return acc().raw.parent != Key();
+				else return acc().val().parent != Key();
 			}
 
 		public:
@@ -163,16 +173,26 @@ namespace internal {
 			MyLink<true,0> left;
 			MyLink<true,1> right;
 
-			//template<bool B = false>
-			operator Const<T_Or_Char,C>&() const {
-				//static_assert(!std::is_same_v<T,void>, "there's no value to access (T==void)");
-				return this->raw.value;
+
+			//template<bool B = false> // does not work in g++ (clang's fine)
+			//template<class TT = T, std::enable_if_t<!std::is_same_v<TT,void>>> // doesn't work too in g++
+			// g++ doesn't use templated conversion operators when it should
+			// so we do the T_Or_Char trick
+			operator Const<T_Or_Char,C>&() {
+				static_assert(!std::is_same_v<T,void>, "there's no value to access (T==void)");
+				return this->val().val;
 			}
+
+			operator const T_Or_Char&() const {
+				static_assert(!std::is_same_v<T,void>, "there's no value to access (T==void)");
+				return this->val().val;
+			}
+
 
 		private:
 			inline auto get_child_idx(int child) const {
 				if constexpr(bool(FLAGS & EVERSIBLE)) {
-					return child ^ this->raw.swap_children;
+					return child ^ this->val().swap_children;
 				}
 				return child;
 			}
@@ -199,33 +219,34 @@ namespace internal {
 			:: template Type <storage_type>
 			:: template Accessor_Template <Aggregate_Accessor_Template>
 			:: template Flags <Storage_Flags::NONE> // not erasable - binary tree is erasable anyway
-			:: Storage;
+			:: Build;
 
 
 
 
 
 		using Vert_Base_swap   = Vert_Add_swap <bool(FLAGS & EVERSIBLE)>;
-		using Vert_Base_value  = Vert_Add_value<!std::is_same_v<T,void>, T>;
+		using Vert_Base_val  = Vert_Add_val<!std::is_same_v<T,void>, T>;
 		using Vert_Base_parent = Vert_Add_parent<bool(FLAGS & PARENT_LINKS), Key>;
 
 		struct Vert :
 				Vert_Base_swap,
-				Vert_Base_value,
+				Vert_Base_val,
 				Vert_Base_parent {
 
 			Vert() {}
 
 			template<class... Args>
-			Vert(Args&&... args) : Vert_Base_value(std::forward<Args>(args)... ) {}
+			Vert(Args&&... args) : Vert_Base_val(std::forward<Args>(args)... ) {}
 
-			using Vert_Base_value::operator=;
+			using Vert_Base_val::operator=;
 
 			std::array< Key, 2> children = {{Key(), Key()}};
 		};
 
 
 
+	}; // Binary_Tree_T
 
 
 
@@ -233,10 +254,36 @@ namespace internal {
 
 
 
+	//
+	// BINARY TREE
+	//
+	template<
+		class T,
+		Binary_Tree_Flags FLAGS,
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE
+	>
+	class Binary_Tree : public internal::Binary_Tree_T<T, FLAGS, ACCESSOR_TEMPLATE>::Storage {
+	private:
+		using BASE = typename internal::Binary_Tree_T<T, FLAGS, ACCESSOR_TEMPLATE>::Storage;
 
-	}; // Binary_Tree
+	public:
+		using Value = T;
+		static constexpr auto Flags = FLAGS;
 
-} // namespace _internal
+	public:
+		Binary_Tree() : BASE(*this) {}
+	};
+
+
+
+
+
+
+} // namespace internal
+
+
+
+
 
 
 
@@ -247,41 +294,14 @@ namespace internal {
 
 
 //
-// BINARY TREE
+// W/O BUILDER
 //
-template<
-	class T = void,
-	Binary_Tree_Flags FLAGS = internal::default_Binary_Tree_Flags,
-	template<Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Binary_Tree_Accessor_Template
->
-class Binary_Tree : public internal::Binary_Tree_T<T, FLAGS, ACCESSOR_TEMPLATE>::Storage {
-private:
-	using BASE = typename internal::Binary_Tree_T<T, FLAGS, ACCESSOR_TEMPLATE>::Storage;
-
-public:
-	using Value = T;
-	static constexpr auto Flags = FLAGS;
-
-public:
-	Binary_Tree() : BASE(*this) {}
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+template<class T>
+using Binary_Tree = internal::Binary_Tree<
+	T,
+	internal::default_Binary_Tree_Flags,
+	internal::Default__Binary_Tree_Accessor_Template
+>;
 
 
 
@@ -292,19 +312,19 @@ public:
 template<
 	class T = void,
 	Binary_Tree_Flags FLAGS = internal::default_Binary_Tree_Flags,
-	template<Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Binary_Tree_Accessor_Template
+	template<internal::Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Binary_Tree_Accessor_Template
 >
 class Binary_Tree_Builder {
 public:
 	using Build = std::conditional_t<bool(FLAGS & IMPLICIT),
-		Implicit_Binary_Tree<T, FLAGS, ACCESSOR_TEMPLATE>,
-		Binary_Tree<T, FLAGS, ACCESSOR_TEMPLATE>
+		internal::Implicit_Binary_Tree<T, FLAGS, ACCESSOR_TEMPLATE>,
+		internal::Binary_Tree<T, FLAGS, ACCESSOR_TEMPLATE>
 	>;
 
 	//
 
 
-	template<template<Const_Flag,class,class> class NEW_ACCESSOR_TEMPLATE>
+	template<template<internal::Const_Flag,class,class> class NEW_ACCESSOR_TEMPLATE>
 	using Accessor_Template = Binary_Tree_Builder<T, FLAGS, NEW_ACCESSOR_TEMPLATE>;
 
 
@@ -322,154 +342,6 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
-// used for INORDER binary tree traversal
-//
-// operator-- is disabled to prevent users from computing begin() too often
-//
-// TODO: make it work for linked binary trees (not only implicit)
-//
-template<class TREE>
-class Inorder {
-private:
-	static constexpr bool is_const = !std::is_same_v< std::remove_const_t<TREE>, TREE>;
-	static constexpr Const_Flag C = is_const ? CONST : MUTAB;
-
-public:
-	Inorder(TREE& tree) : _tree(tree) {
-		static_assert(bool(TREE::Flags & PARENT_LINKS), "currently inorder traversal requires parent links");
-	}
-
-	auto begin() const {
-		return Iterator(_tree.begin(), false);
-	}
-
-	auto end() const {
-		return Iterator(_tree.end(), true);
-	}
-
-	// TODO: rbegin, rend
-
-
-private:
-
-	//
-	#define SELF (**this)
-
-	class Iterator : public TREE::template Iterator_Base<C, Iterator> {
-	private:
-		using BASE = typename TREE::template Iterator_Base<C, Iterator>;
-		using BASE::owner;
-		using BASE::idx;
-
-	public:
-		Iterator(const typename TREE::template Iterator<C>& base_iter, bool end)
-				: BASE(base_iter) {
-
-			// end
-			if(end) {
-				idx = decltype(idx)();
-			}
-			else if((*base_iter).exists) {
-				while(SELF.parent) {
-					idx = SELF.parent().key;
-				}
-
-				while(SELF.left) {
-					idx = SELF.left().key;
-				}
-			}
-		}
-
-	public:
-		using BASE::operator==;
-		using BASE::operator!=;
-
-
-		auto& operator++() {
-			increment();
-			return *this; }
-
-		auto operator++(int) {
-			auto old = *this;
-			increment();
-			return old; }
-
-	private:
-		template<bool B = false>
-		auto& operator--() { static_assert(B, "operator--() is disabled"); }
-
-		template<bool B = false>
-		auto operator--(int) { static_assert(B, "operator--(int) is disabled"); }
-
-
-	private:
-		void increment() {
-
-			if( SELF.right().exists ) {
-				idx = SELF.right().key;
-
-				while( SELF.left().exists )  idx = SELF.left().key;
-			}
-			else {
-				for(;;) {
-					auto prev_idx = idx;
-					idx = SELF.parent().key;
-
-					if(idx != decltype(BASE::idx)() && SELF.right().exists && SELF.right().key == prev_idx) continue;
-					else break;
-				}
-			}
-		}
-
-		/*
-		void decrement() {
-
-			if(idx > 0) {
-				if( SELF.left().exists ) {
-					idx = SELF.left().key;
-
-					while( SELF.right().exists )  idx = SELF.right().key;
-				}
-				else {
-					do {
-						auto prev_idx = idx;
-						idx = SELF.parent().key;
-					} while(idx > 0 && SELF.left().exists && SELF.left().key == prev_idx);
-				}
-			}
-			else { // idx == 0
-				while( SELF.right().exists )  idx = SELF.right().key;
-			}
-		}
-		*/
-	};
-
-	#undef SELF
-	//
-
-
-
-private:
-	TREE& _tree;
-};
 
 
 

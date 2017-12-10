@@ -12,7 +12,7 @@ using namespace std::chrono;
 
 TEST(Deque_dense_map, push_back_and_read) {
 
-	Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 	m[-1] = -1;
 	m.push_back(0);
 	m.push_back(1);
@@ -42,7 +42,7 @@ TEST(Deque_dense_map, push_back_and_read) {
 
 TEST(Deque_dense_map, push_back_and_read_with_offset) {
 
-	Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 	m[-10] = 42;
 	m.push_back(1);
 	m.push_back(2);
@@ -73,7 +73,7 @@ TEST(Deque_dense_map, push_back_and_read_with_offset) {
 
 TEST(Deque_dense_map, test_delete) {
 
-	Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 	m.push_back(1);
 	m.push_back(2);
 	m.push_back(3);
@@ -101,7 +101,7 @@ TEST(Deque_dense_map, test_delete) {
 
 TEST(Deque_dense_map, test_delete_with_offset) {
 
-	Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 	m[-10] = 42;
 	m.push_back(1);
 	m.push_back(2);
@@ -128,7 +128,7 @@ TEST(Deque_dense_map, test_delete_with_offset) {
 
 TEST(Deque_dense_map, exists) {
 
-	Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 	m.push_back(1);
 	m.push_back(2);
 	m.push_back(3);
@@ -154,7 +154,7 @@ TEST(Deque_dense_map, exists) {
 
 TEST(Deque_dense_map, auto_resize) {
 
-	Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 
 	EXPECT_EQ(0, m.domain_begin());
 	EXPECT_EQ(0, m.domain_end());
@@ -186,7 +186,7 @@ TEST(Deque_dense_map, auto_resize) {
 
 TEST(Deque_dense_map, auto_resize_back) {
 
-	Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 
 	m[5] = 5;
 	m[-1] = -1;
@@ -214,7 +214,7 @@ TEST(Deque_dense_map, auto_resize_back) {
 
 TEST(Deque_dense_map, const_test) {
 
-	Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 	m.push_back(1);
 	m.push_back(2);
 	m.push_back(3);
@@ -250,7 +250,7 @@ TEST(Performance, Deque_dense_map) {
 			auto t0 = steady_clock::now();
 
 
-			Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map m;
+			Dense_Map_Builder<int>::Type<DEQUE>::Build m;
 
 			for(int i=0; i<elements; ++i) m.push_back(i);
 			
@@ -336,8 +336,8 @@ TEST(Performance, Deque_dense_map) {
 
 TEST(Dense_map, test_sizeof) {
 	EXPECT_LT(
-		sizeof(Dense_Map_Builder<int>::Type<VECTOR>::Dense_Map),
-		sizeof(Dense_Map_Builder<int>::Type<DEQUE>::Dense_Map));
+		sizeof(Dense_Map_Builder<int>::Type<VECTOR>::Build),
+		sizeof(Dense_Map_Builder<int>::Type<DEQUE>::Build));
 }
 
 
@@ -378,7 +378,7 @@ TEST(Dense_map, test_sizeof) {
 
 TEST(Vector_dense_map, push_back_and_read) {
 
-	Dense_Map_Builder<int>::Type<VECTOR>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<VECTOR>::Build m;
 	m.push_back(0);
 	m.push_back(1);
 	m.push_back(2);
@@ -408,7 +408,7 @@ TEST(Vector_dense_map, push_back_and_read) {
 
 TEST(Vector_dense_map, test_delete) {
 
-	Dense_Map_Builder<int>::Type<VECTOR>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<VECTOR>::Build m;
 	m.push_back(1);
 	m.push_back(2);
 	m.push_back(3);
@@ -436,7 +436,7 @@ TEST(Vector_dense_map, test_delete) {
 
 TEST(Vector_dense_map, exists) {
 
-	Dense_Map_Builder<int>::Type<VECTOR>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<VECTOR>::Build m;
 	m.push_back(1);
 	m.push_back(2);
 	m.push_back(3);
@@ -465,7 +465,7 @@ TEST(Vector_dense_map, exists) {
 
 TEST(Vector_dense_map, auto_resize) {
 
-	Dense_Map_Builder<int>::Type<VECTOR>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<VECTOR>::Build m;
 
 	EXPECT_EQ(0, m.domain_begin());
 	EXPECT_EQ(0, m.domain_end());
@@ -497,7 +497,7 @@ TEST(Vector_dense_map, auto_resize) {
 
 TEST(Vector_dense_map, auto_resize_back) {
 
-	Dense_Map_Builder<int>::Type<VECTOR>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<VECTOR>::Build m;
 
 	m[5] = 5;
 	m[1] = 1;
@@ -525,7 +525,7 @@ TEST(Vector_dense_map, auto_resize_back) {
 
 TEST(Vector_dense_map, const_test) {
 
-	Dense_Map_Builder<int>::Type<VECTOR>::Dense_Map m;
+	Dense_Map_Builder<int>::Type<VECTOR>::Build m;
 	m.push_back(1);
 	m.push_back(2);
 	m.push_back(3);
@@ -541,6 +541,26 @@ TEST(Vector_dense_map, const_test) {
 
 	EXPECT_EQ(4, c[3]);
 }
+
+
+TEST(Vector_dense_map, const_accessor_test) {
+
+	Dense_Map_Builder<int>::Type<VECTOR>::Build m;
+	m.push_back(0);
+	m.push_back(1);
+	m.push_back(2);
+	m.push_back(3);
+	m.push_back(4);
+
+	//const auto& e = m[2];
+
+	//e = 123;
+	//e.val = 123;
+	//e.erase();
+
+	//auto val = e.val;
+}
+
 
 
 
@@ -569,14 +589,14 @@ TEST(Performance, Vector_dense_map) {
 			auto t0 = steady_clock::now();
 
 
-			Dense_Map_Builder<int>::Type<VECTOR>::Dense_Map m;
+			Dense_Map_Builder<int>::Type<VECTOR>::Build m;
 
 			for(int i=0; i<elements; ++i) m.push_back(i);
 			
 			//std::random_shuffle(m.begin(), m.end());
 
 			long long result = 0;
-			for(auto e : m) result += e;
+			for(const auto& e : m) result += e;
 			my_result += result;
 
 			duration<double> dur = steady_clock::now() - t0;
@@ -641,7 +661,7 @@ TEST(Performance, Vector_dense_map_noerase) {
 			auto t0 = steady_clock::now();
 
 
-			Dense_Map_Builder<int>::Type<VECTOR>::Rem_Flags<ERASABLE>::Dense_Map m;
+			Dense_Map_Builder<int>::Type<VECTOR>::Rem_Flags<ERASABLE>::Build m;
 
 			for(int i=0; i<elements; ++i) m.push_back(i);
 			

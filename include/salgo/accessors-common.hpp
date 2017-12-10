@@ -8,6 +8,9 @@
 
 namespace salgo {
 
+
+namespace internal {
+
 //
 // const flag
 //
@@ -29,35 +32,71 @@ template<class T, Const_Flag c> using Const = std::conditional_t<c == CONST, con
 
 
 
+template<class T, Const_Flag C>
+class Proxy {
+public:
+	operator Const<T,C>&() {
+		return ref;
+	}
+
+	operator const T&() const {
+		return ref;
+	}
+
+
+	Const<T,C>& operator()() {
+		return ref;
+	}
+
+	const T& operator()() const {
+		return ref;
+	}
+
+
+	T& operator=(const T& o) {
+		return ref = o;
+	}
+
+public:
+	static auto create(Const<T,C>& r) {
+		return Proxy(r);
+	}
+
+private:
+	explicit Proxy(Const<T,C>& r) : ref(r) {}
+	Const<T,C>& ref;
+};
 
 
 
 
 
 
-namespace internal {
-
-	template<Const_Flag C, class OWNER, class BASE>
-	class Index_Accessor_Template : public BASE {
-
-		// with context
-		template<class B = BASE, class = std::enable_if_t<!std::is_same_v<typename B::Context, void>>>
-		Index_Accessor_Template(typename B::Context& c, Const<OWNER,C>& o, int i)
-				: BASE(c, o, i) {}
-
-		// without context
-		template<class B = BASE, class = std::enable_if_t<std::is_same_v<typename B::Context, void>>>
-		Index_Accessor_Template(Const<OWNER,C>& o, int i)
-				: BASE(o, i) {}
-
-	public:
-		using BASE::operator=;
-
-		friend OWNER;
-	};
 
 
-}
+
+
+template<Const_Flag C, class OWNER, class BASE>
+class Index_Accessor_Template : public BASE {
+
+	// with context
+	template<class B = BASE, class = std::enable_if_t<!std::is_same_v<typename B::Context, void>>>
+	Index_Accessor_Template(typename B::Context& c, Const<OWNER,C>& o, int i)
+			: BASE(c, o, i) {}
+
+	// without context
+	template<class B = BASE, class = std::enable_if_t<std::is_same_v<typename B::Context, void>>>
+	Index_Accessor_Template(Const<OWNER,C>& o, int i)
+			: BASE(o, i) {}
+
+public:
+	using BASE::operator=;
+
+	friend OWNER;
+};
+
+
+
 
 
 
@@ -299,6 +338,7 @@ private:
 
 
 
+} // namespace internal
 
 
 } // namespace salgo

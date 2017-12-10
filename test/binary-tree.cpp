@@ -1,4 +1,5 @@
 #include <salgo/binary-tree.hpp>
+#include <salgo/inorder.hpp>
 
 #include <gtest/gtest.h>
 
@@ -16,6 +17,7 @@ TEST(Implicit_binary_tree, simple_1) {
 
 	Binary_Tree_Builder<int>::Add_Flags<IMPLICIT>::Build tree;
 
+	EXPECT_FALSE(tree.root);
 	EXPECT_FALSE(tree.root().exists);
 
 	tree.root() = 42;
@@ -56,10 +58,10 @@ TEST(Implicit_binary_tree, traverse_1) {
 
 	Binary_Tree_Builder<int>::Add_Flags<IMPLICIT | BT_VERTS_ERASABLE>::Build tree;
 
-	tree.root() = 1;
-	tree.root().left() = 2;
-	tree.root().right() = 3;
-	tree.root().right().left() = 3;
+	tree.root = 1;
+	tree.root().left = 2;
+	tree.root().right = 3;
+	tree.root().right().left = 3;
 	tree.root().right().right() = 3;
 
 	auto sum = 0;
