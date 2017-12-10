@@ -35,8 +35,13 @@ namespace Dense_Map {
 
 
 	// for Dense_Map
-	template<bool> class Add_offset {protected: int offset = 0; };
-	template<>     class Add_offset <false> {};
+	template<bool> struct Add_offset { int offset = 0; };
+	template<>     struct Add_offset <false> {};
+
+	// for Dense_Map
+	template<bool> struct Add_size { int _size = 0; };
+	template<>     struct Add_size <false> {};
+
 
 	// for Node
 	template<bool> struct Add_exists { bool exists = false; };
@@ -73,7 +78,9 @@ namespace Dense_Map {
 		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
 		bool ERASABLE
 	>
-	class Dense_Map : public Add_offset<TYPE == Type::DEQUE> {
+	class Dense_Map :
+			private Add_offset<TYPE == Type::DEQUE>,
+			private Add_size<ERASABLE> {
 
 		// forward declarations
 		public: template<Const_Flag C> class Accessor_Base;
@@ -139,11 +146,28 @@ namespace Dense_Map {
 			static_assert(!has_context, "you have to provide context");
 		}
 
+		Dense_Map(const std::initializer_list<Value>& l) {
+			static_assert(!has_context, "you have to provide context");
+
+			if constexpr(TYPE == Type::VECTOR) {
+				_raw.reserve(l.size());
+			}
+
+			if constexpr(ERASABLE) {
+				this->_size = l.size();
+			}
+
+			for(const auto& e : l) {
+				_raw.push_back(e);
+			}
+		}
+
 		Dense_Map(Key new_offset)
-				: Add_offset<TYPE == Type::DEQUE>(new_offset) {
+				: Add_offset<TYPE == Type::DEQUE>{new_offset} {
 
 			static_assert(!has_context, "you have to provide context");
 		}
+
 
 		template<class CONTEXT>
 		Dense_Map(CONTEXT&& c) : context(std::forward<CONTEXT>(c)) {
@@ -159,6 +183,13 @@ namespace Dense_Map {
 
 		decltype(auto) operator[](Key key) const {
 			return create_accessor<CONST>(key - get_offset());
+		}
+
+
+
+		auto size() const {
+			if constexpr(ERASABLE) return this->_size;
+			else return _raw.size();
 		}
 
 
@@ -192,12 +223,14 @@ namespace Dense_Map {
 		template<class VAL>
 		inline auto push_back(VAL&& val) {
 			_raw.push_back(std::forward<VAL>(val));
+			if constexpr(ERASABLE) ++this->_size;
 			return create_accessor<MUTAB>(_raw.size()-1);
 		}
 
 		template<class... Args>
 		inline auto emplace_back(Args&&... args) {
 			_raw.emplace_back(std::forward<Args>(args)... );
+			if constexpr(ERASABLE) ++this->_size;
 			return create_accessor<MUTAB>(_raw.size()-1);
 		}
 
@@ -275,6 +308,7 @@ namespace Dense_Map {
 				DCHECK(key - owner.get_offset() < (int)owner._raw.size());
 				DCHECK(_raw().exists);
 				_raw().exists = false;
+				--owner._size;
 			}
 
 			operator Const<Value,C>&() {
@@ -289,7 +323,7 @@ namespace Dense_Map {
 			template<class TT>
 			auto operator=(TT&& new_value) {
 
-				static_assert(C == MUTAB, "assignment to const accessor");
+				static_assert(C == MUTAB, "can't assign to const accessor");
 
 				if constexpr(TYPE == Type::DEQUE) {
 					if(owner._raw.empty()) {
@@ -310,7 +344,10 @@ namespace Dense_Map {
 					owner._raw.resize(_idx + 1);
 				}
 
-				if constexpr(ERASABLE) _raw().exists = true;
+				if constexpr(ERASABLE) {
+					if(!_raw().exists) ++owner._size;
+					_raw().exists = true;
+				}
 				_raw().value = std::forward<TT>(new_value);
 				return owner.template create_accessor<C>(_idx);
 			}
@@ -352,7 +389,8 @@ namespace Dense_Map {
 		};
 
 
-
+		//friend Accessor_Base<CONST>;
+		//friend Accessor_Base<MUTAB>;
 
 
 
@@ -557,13 +595,29 @@ template<
 	class Value_Or_Key,
 	class Void_Or_Value = void
 >
-struct Dense_Map : internal::Dense_Map::Dense_Map<
+class Dense_Map : public internal::Dense_Map::Dense_Map<
 	Value_Or_Key,
 	Void_Or_Value,
 	internal::Dense_Map::Type::DEQUE,
 	internal::Index_Accessor_Template,
 	true // erasable
 > {
+private:
+	using _BASE = internal::Dense_Map::Dense_Map<
+		Value_Or_Key,
+		Void_Or_Value,
+		internal::Dense_Map::Type::DEQUE,
+		internal::Index_Accessor_Template,
+		true // erasable
+	>;
+
+public:
+	template<class... Args>
+	Dense_Map(Args&&... args) : _BASE(std::forward<Args>(args)... ) {}
+
+	template<class TT>
+	Dense_Map(const std::initializer_list<TT>& l) : _BASE(l) {}
+
 	using BUILDER = internal::Dense_Map::Builder<
 		Value_Or_Key,
 		Void_Or_Value,

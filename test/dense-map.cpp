@@ -20,6 +20,8 @@ TEST(Deque_dense_map, push_back_and_read) {
 	m.push_back(3);
 	m.push_back(4);
 
+	EXPECT_EQ(6, m.size());
+
 	EXPECT_EQ(-1, m.domain_begin());
 	EXPECT_EQ(5, m.domain_end());
 
@@ -49,6 +51,8 @@ TEST(Deque_dense_map, push_back_and_read_with_offset) {
 	m.push_back(3);
 	m.push_back(4);
 	m.push_back(5);
+
+	EXPECT_EQ(6, m.size());
 
 	EXPECT_EQ(-10, m.domain_begin());
 	EXPECT_EQ(-10 + 6, m.domain_end());
@@ -80,6 +84,8 @@ TEST(Deque_dense_map, test_delete) {
 	m.push_back(4);
 	m.push_back(5);
 
+	EXPECT_EQ(5, m.size());
+
 	EXPECT_EQ(0, m.domain_begin());
 	EXPECT_EQ(5, m.domain_end());
 
@@ -109,6 +115,8 @@ TEST(Deque_dense_map, test_delete_with_offset) {
 	m.push_back(4);
 	m.push_back(5);
 
+	EXPECT_EQ(6, m.size());
+
 	EXPECT_EQ(-10, m.domain_begin());
 	EXPECT_EQ(-10 + 6, m.domain_end());
 
@@ -134,6 +142,8 @@ TEST(Deque_dense_map, exists) {
 	m.push_back(3);
 	m.push_back(4);
 	m.push_back(5);
+
+	EXPECT_EQ(5, m.size());
 
 	EXPECT_EQ(0, m.domain_begin());
 	EXPECT_EQ(5, m.domain_end());
@@ -164,6 +174,8 @@ TEST(Deque_dense_map, auto_resize) {
 	m[100] = 123;
 	EXPECT_EQ(123, m[100]);
 
+	EXPECT_EQ(1, m.size());
+
 	EXPECT_EQ(true, m[100].exists);
 	EXPECT_EQ(false, m[0].exists);
 	EXPECT_EQ(false, m[10].exists);
@@ -175,6 +187,8 @@ TEST(Deque_dense_map, auto_resize) {
 	m[150] = 234;
 	EXPECT_EQ(123, m[100]);
 	EXPECT_EQ(234, m[150]);
+
+	EXPECT_EQ(51, m.size()); // elements in the middle are inserted (not ERASABLE)
 
 	EXPECT_EQ(100, m.domain_begin());
 	EXPECT_EQ(151, m.domain_end());
@@ -194,6 +208,8 @@ TEST(Deque_dense_map, auto_resize_back) {
 	EXPECT_EQ(5, m[5]);
 	EXPECT_EQ(-1, m[-1]);
 
+	EXPECT_EQ(2, m.size());
+
 	EXPECT_EQ(true, m[5].exists);
 	EXPECT_EQ(true, m[-1].exists);
 	EXPECT_EQ(false, m[4].exists);
@@ -210,6 +226,68 @@ TEST(Deque_dense_map, auto_resize_back) {
 
 
 
+TEST(Deque_dense_map, proxy_operator_brackets) {
+
+	struct S {
+		int member;
+	};
+
+	Dense_Map<S> m;
+
+	m[5] = S{42};
+
+	EXPECT_EQ(42, m[5].val().member);
+
+	S& ss = m[5];
+	EXPECT_EQ(42, ss.member);
+
+	EXPECT_EQ(1, m.size());
+}
+
+TEST(Deque_dense_map, iterate_and_erase) {
+
+	Dense_Map<int> m = {-1, 2, -3, 4, -12};
+
+	EXPECT_EQ(5, m.size());
+
+	for(auto e : m) {
+		if(e < 0.0) {
+			e.erase();
+		}
+	}
+
+	int sum = 0;
+	for(const auto& e : m) {
+		sum += e;
+	}
+	EXPECT_EQ(6, sum);
+
+	EXPECT_EQ(2, m.size());
+}
+
+
+TEST(Deque_dense_map, construction_1) {
+
+	Dense_Map<int> m = {5};
+	EXPECT_EQ(1, m.size());
+	ASSERT_TRUE(m[0].exists);
+	EXPECT_EQ(5, m[0]);
+}
+
+
+TEST(Deque_dense_map, construction_2) {
+	Dense_Map<int> m(5);
+	m.push_back(2);
+	EXPECT_EQ(1, m.size());
+	ASSERT_TRUE(m[5].exists);
+	EXPECT_EQ(2, m[5]);
+
+	EXPECT_FALSE(m[0].exists);
+}
+
+
+
+
 
 
 TEST(Deque_dense_map, const_test) {
@@ -222,6 +300,8 @@ TEST(Deque_dense_map, const_test) {
 	m.push_back(5);
 
 	const auto& c = m;
+
+	EXPECT_EQ(5, m.size());
 
 	EXPECT_EQ(0, c.domain_begin());
 	EXPECT_EQ(5, c.domain_end());
@@ -384,6 +464,8 @@ TEST(Vector_dense_map, push_back_and_read) {
 	m.push_back(2);
 	m.push_back(3);
 	m.push_back(4);
+
+	EXPECT_EQ(5, m.size());
 
 	EXPECT_EQ(0, m.domain_begin());
 	EXPECT_EQ(5, m.domain_end());

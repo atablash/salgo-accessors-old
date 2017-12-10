@@ -16,6 +16,14 @@ Why?
 Using the library
 =================
 
+The library is contained in `salgo` namespace, so either type `salgo::` explicitly every time (especially in header files or in case of name conflicts), or just use:
+
+```cpp
+	using namespace salgo;
+```
+
+
+
 Accessors
 ---------
 
@@ -23,16 +31,14 @@ Accessors, or views (or proxy objects), are objects that provide a simple interf
 
 This concept is somewhat present in the standard C++ library too, for pseudo-reference objects returned by `std::bitset<N>::operator[]` and `std::vector<bool>::operator[]`.
 
-Where possible, data is exposed using member references instead of member functions, to minimize number of `()`s in code.
-
 ```cpp
 	Dense_Map<double> dm;
-	dm[-2] = 31;
-	dm[ 3] = 12;
-	dm[ 4] = 23;
+	dm[-2] = 3.1;
+	dm[ 3] = 1.2;
+	dm[ 4] = 2.3;
 
 	for(auto e : dm) {		// note it's not `auto&`
-		e.val = 123;
+		e = 12.3;
 		cout << e.key << " -> " << e.val << endl;
 	}
 ```
@@ -40,6 +46,20 @@ Where possible, data is exposed using member references instead of member functi
 Note that accessors are constructed on demand and passed **by value**, like in the above `for`-loop. This means you can't write ~~`for(auto& e : dm)`~~.
 
 However, you can use `for(const auto& e : dm)` normally, to mark *const*-ness of the referenced element.
+
+In the above example, `e.val` is still not the underlying `double` or reference to it, but another proxy object. It is implicitly convertible to `double&`, but in case you need it explicit, use `operator()` on it:
+
+```cpp
+	struct S {
+		int member;
+	};
+
+	Dense_Map<S> dm;
+
+	dm[5] = S{42};
+
+	cout << dm[5].val().member << endl;
+```
 
 
 ### Story behind accessors
@@ -121,7 +141,49 @@ Dense_Map
  * You can assign a value to a non-existing element and it's automatically created
  * It exposes all the accessor machinery of course
 
-TODO
+```cpp
+	Dense_Map<int> m = {-1, 2, -3, 4, -12};
+
+	for(auto e : m) if(e < 0) e.erase();
+
+	int sum = 0;
+	for(auto e : m) sum += e;
+
+	cout << sum << endl; // prints 6
+```
+
+
+### Type Builder
+
+By default, a full-blown object with all the functionality is constructed.
+
+If you want a custom object, use the `BUILDER`:
+
+```cpp
+	Dense_Map<int>::BUILDER::Vector::Erasable::BUILD m;
+```
+
+The `BUILDER` supports following settings:
+ * `Vector` - use the `std::vector` version of the *Dense_Map*: keys will start from 0
+ * `Deque` - use the `std::deque` version of the *Dense_Map*: keys can start from arbitrary integer
+ * `Erasable` - elements can be erased, leaving "holes" that still occupy memory
+
+To get the bare minimum (*Vector* version, not *Erasable*), just don't supply any options:
+
+```cpp
+	Dense_Map<int>::BUILDER::BUILD m;
+```
+
+
+### Construction
+
+
+
+
+### Notes
+
+ * Currently iteration doesn't jump over long erased elements sequences, so iterating over erased elements will still take time.
+ * It can construct some of your objects before you want it. It's still not implemented properly for usage with objects.
 
 
 
