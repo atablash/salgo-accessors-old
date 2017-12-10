@@ -182,7 +182,7 @@ template<
 	class T,
 	Storage_Flags FLAGS = internal::default__Storage_Flags,
 	Storage_Type TYPE = internal::default__Storage_Type,
-	template<internal::Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Storage_Accessor_Template
+	template<Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Storage_Accessor_Template
 >
 class Storage_Builder {
 
@@ -192,7 +192,7 @@ public:
 	template<Storage_Type NEW_TYPE>
 	using Type = Storage_Builder<T, FLAGS, NEW_TYPE, ACCESSOR_TEMPLATE>;
 	
-	template<template<internal::Const_Flag,class,class> class NEW_TMPL>
+	template<template<Const_Flag,class,class> class NEW_TMPL>
 	using Accessor_Template = Storage_Builder<T, FLAGS, TYPE, NEW_TMPL>;
 
 

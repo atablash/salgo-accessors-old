@@ -312,7 +312,7 @@ using Binary_Tree = internal::Binary_Tree<
 template<
 	class T = void,
 	Binary_Tree_Flags FLAGS = internal::default_Binary_Tree_Flags,
-	template<internal::Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Binary_Tree_Accessor_Template
+	template<Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Binary_Tree_Accessor_Template
 >
 class Binary_Tree_Builder {
 public:
@@ -324,7 +324,7 @@ public:
 	//
 
 
-	template<template<internal::Const_Flag,class,class> class NEW_ACCESSOR_TEMPLATE>
+	template<template<Const_Flag,class,class> class NEW_ACCESSOR_TEMPLATE>
 	using Accessor_Template = Binary_Tree_Builder<T, FLAGS, NEW_ACCESSOR_TEMPLATE>;
 
 

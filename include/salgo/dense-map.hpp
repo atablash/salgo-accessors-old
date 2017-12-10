@@ -553,7 +553,7 @@ namespace Dense_Map {
 		class Value_Or_Key,
 		class Void_Or_Value,
 		Type TYPE,
-		template<internal::Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
 		bool ERASABLE
 	>
 	class Builder {
@@ -570,7 +570,7 @@ namespace Dense_Map {
 		using Erasable
 			= Builder<Value_Or_Key, Void_Or_Value, TYPE, ACCESSOR_TEMPLATE, true>;
 		
-		template<template<internal::Const_Flag,class,class> class NEW_TMPL>
+		template<template<Const_Flag,class,class> class NEW_TMPL>
 		using Accessor_Template
 			= Builder<Value_Or_Key, Void_Or_Value, TYPE, NEW_TMPL, ERASABLE>;
 
