@@ -142,7 +142,7 @@ namespace Binary_Tree {
 		template<Const_Flag C, class OWNER, class BASE>
 		using Aggregate_Accessor_Template = typename Accessor_Template<C, OWNER, BASE>::Derived;
 
-		using _Builder_1 = typename Dense_Map<Vert> :: BUILDER
+		using _Builder_1 = typename salgo::Dense_Map<Vert> :: BUILDER
 			:: Vector
 			:: template Accessor_Template<Aggregate_Accessor_Template>;
 

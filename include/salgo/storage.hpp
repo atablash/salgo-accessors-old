@@ -71,8 +71,8 @@ namespace Storage {
 		bool ERASABLE
 	>
 	using Dense_Map_Base = typename std::conditional_t<	ERASABLE,
-			typename Dense_Map<Storage_Key<TYPE>,T>::BUILDER::Erasable,
-			typename Dense_Map<Storage_Key<TYPE>,T>::BUILDER
+			typename salgo::Dense_Map<Storage_Key<TYPE>,T>::BUILDER::Erasable,
+			typename salgo::Dense_Map<Storage_Key<TYPE>,T>::BUILDER
 		>
 		::Vector
 		::template Accessor_Template<ACCESSOR_TEMPLATE> :: BUILD;
