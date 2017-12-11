@@ -23,7 +23,7 @@ namespace internal {
 
 	public:
 		Inorder(TREE& tree) : _tree(tree) {
-			static_assert(bool(TREE::Flags & PARENT_LINKS), "currently inorder traversal requires parent links");
+			static_assert(TREE::Parent_Links, "currently inorder traversal requires parent links");
 		}
 
 		auto begin() const {

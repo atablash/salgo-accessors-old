@@ -9,15 +9,17 @@ namespace salgo {
 
 
 namespace internal {
+namespace Binary_Tree {
 
 
 	//
 	// IMPLICIT BINARY TREE
 	//
 	template<
-		class VALUE = void,
-		Binary_Tree_Flags FLAGS = internal::default_Binary_Tree_Flags,
-		template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE = internal::Default__Binary_Tree_Accessor_Template
+		class VALUE,
+		template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE,
+		bool ERASABLE,
+		bool EVERSIBLE
 	>
 	class Implicit_Binary_Tree {
 
@@ -28,7 +30,10 @@ namespace internal {
 	//
 	public:
 		using Value = VALUE;
-		static constexpr auto Flags = FLAGS;
+		static constexpr auto Implicit = true;
+		static constexpr auto Erasable = ERASABLE;
+		static constexpr auto Eversible = EVERSIBLE;
+		static constexpr auto Parent_Links = true;
 
 
 
@@ -96,7 +101,7 @@ namespace internal {
 
 		private:
 			inline auto get_child_idx(int child) {
-				if constexpr(bool(Flags & EVERSIBLE)) return child ^ this->val().swap_children;
+				if constexpr(EVERSIBLE) return child ^ this->val().swap_children;
 				return child;
 			}
 
@@ -127,10 +132,10 @@ namespace internal {
 	//
 	private:
 		struct Vert :
-				internal::Vert_Add_swap <bool(Flags & EVERSIBLE)>,
-				internal::Vert_Add_val<!std::is_same_v<Value,void>, Value> {
+				Vert_Add_swap <EVERSIBLE>,
+				Vert_Add_val<!std::is_same_v<Value,void>, Value> {
 
-			using internal::Vert_Add_val<!std::is_same_v<Value,void>, Value>::operator=;
+			using Vert_Add_val<!std::is_same_v<Value,void>, Value>::operator=;
 		};
 
 
@@ -141,7 +146,7 @@ namespace internal {
 			:: Vector
 			:: template Accessor_Template<Aggregate_Accessor_Template>;
 
-		using Dense_Map = typename std::conditional_t<bool(Flags & BT_VERTS_ERASABLE),
+		using Dense_Map = typename std::conditional_t< ERASABLE,
 			typename _Builder_1 :: Erasable,
 			_Builder_1
 		> :: BUILD;
@@ -188,18 +193,6 @@ namespace internal {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 	public:
 		template<Const_Flag C>
 		using Iterator = typename Dense_Map::template Iterator<C>;
@@ -210,7 +203,7 @@ namespace internal {
 
 
 
-
+} // namespace Binary_Tree
 } // namespace internal
 
 

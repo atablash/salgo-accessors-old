@@ -9,32 +9,6 @@ namespace salgo {
 
 
 
-enum class Storage_Type {
-	INDEX_16,
-	INDEX_32,
-	//POINTER // TODO: not implemented
-};
-
-namespace {
-	constexpr auto INDEX_16 = Storage_Type::INDEX_16;
-	constexpr auto INDEX_32 = Storage_Type::INDEX_32;
-	//constexpr auto POINTER  = Storage_Type::POINTER;
-}
-
-
-
-
-enum class Storage_Flags {
-	NONE = 0,
-	ERASABLE = 0x0001
-};
-
-ENABLE_BITWISE_OPERATORS(Storage_Flags);
-
-namespace {
-	constexpr auto STORAGE_ERASABLE = Storage_Flags::ERASABLE;
-}
-
 
 
 
@@ -47,12 +21,20 @@ namespace {
 
 
 namespace internal {
-	constexpr auto default__Storage_Flags = STORAGE_ERASABLE;
-	constexpr auto default__Storage_Type = INDEX_32;
+namespace Storage {
 
-	template<Const_Flag C, class OWNER, class BASE>
-	using Default__Storage_Accessor_Template = Index_Accessor_Template<C, OWNER, BASE>;
 
+	enum class Type {
+		INDEX_16,
+		INDEX_32,
+		//POINTER // TODO: not implemented
+	};
+
+	namespace {
+		constexpr auto INDEX_16 = Type::INDEX_16;
+		constexpr auto INDEX_32 = Type::INDEX_32;
+		//constexpr auto POINTER  = Type::POINTER;
+	}
 
 
 
@@ -79,18 +61,19 @@ namespace internal {
 	};
 
 
-	template<Storage_Type TYPE>
+	template<Type TYPE>
 	using Storage_Key = std::conditional_t<TYPE == INDEX_16, Int_Wrapper<uint16_t>, Int_Wrapper</*u*/int32_t>>;
 
-	template<class T,
-		Storage_Flags FLAGS,
-		Storage_Type TYPE,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE
+	template<
+		class T,
+		Type TYPE,
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		bool ERASABLE
 	>
-	using Dense_Map_Base = typename std::conditional_t<
-		bool(FLAGS & STORAGE_ERASABLE),
-		typename Dense_Map<Storage_Key<TYPE>,T>::BUILDER::Erasable,
-		typename Dense_Map<Storage_Key<TYPE>,T>::BUILDER>
+	using Dense_Map_Base = typename std::conditional_t<	ERASABLE,
+			typename Dense_Map<Storage_Key<TYPE>,T>::BUILDER::Erasable,
+			typename Dense_Map<Storage_Key<TYPE>,T>::BUILDER
+		>
 		::Vector
 		::template Accessor_Template<ACCESSOR_TEMPLATE> :: BUILD;
 
@@ -110,29 +93,29 @@ namespace internal {
 	//
 	template<
 		class T,
-		Storage_Flags FLAGS,
-		Storage_Type TYPE,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE
+		Type TYPE,
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		bool ERASABLE
 	>
-	class Storage : public internal::Dense_Map_Base<T, FLAGS, TYPE, ACCESSOR_TEMPLATE> {
+	class Storage : public Dense_Map_Base<T, TYPE, ACCESSOR_TEMPLATE, ERASABLE> {
 
 	public:
-		using internal::Dense_Map_Base<T, FLAGS, TYPE, ACCESSOR_TEMPLATE> :: domain_end;
+		using Dense_Map_Base<T, TYPE, ACCESSOR_TEMPLATE, ERASABLE> :: domain_end;
 
 	private:
-		using internal::Dense_Map_Base<T, FLAGS, TYPE, ACCESSOR_TEMPLATE> :: emplace_back; // use add instead
+		using Dense_Map_Base<T, TYPE, ACCESSOR_TEMPLATE, ERASABLE> :: emplace_back; // use add instead
 
 	public:
-		static constexpr auto Flags = FLAGS;
 		static constexpr auto Type = TYPE;
+		static constexpr auto Erasable = ERASABLE;
 
 	public:
-		using Key = internal::Storage_Key<TYPE>;
+		using Key = Storage_Key<TYPE>;
 
 
 		template<class... Args>
 		Storage(Args&&... args)
-			: internal::Dense_Map_Base<T, FLAGS, TYPE, ACCESSOR_TEMPLATE>(std::forward<Args>(args)... ) {}
+			: Dense_Map_Base<T, TYPE, ACCESSOR_TEMPLATE, ERASABLE>(std::forward<Args>(args)... ) {}
 
 
 
@@ -150,9 +133,37 @@ namespace internal {
 
 
 
+	//
+	// BUILDER
+	//
+	template<
+		class T,
+		Type TYPE,
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		bool ERASABLE
+	>
+	class Builder {
+
+	public:
+		using BUILD = Storage<T, TYPE, ACCESSOR_TEMPLATE, ERASABLE>;
+
+		using Index_16 = Builder<T, Type::INDEX_16, ACCESSOR_TEMPLATE, ERASABLE>;
+		using Index_32 = Builder<T, Type::INDEX_32, ACCESSOR_TEMPLATE, ERASABLE>;
+
+		// this is half-internal actually, e.g. binary_tree uses it:
+		template<Type NEW_TYPE>
+		using Internal_Type = Builder<T, NEW_TYPE, ACCESSOR_TEMPLATE, ERASABLE>;
+
+		using Erasable = Builder<T, TYPE, ACCESSOR_TEMPLATE, true>;
+		
+		template<template<Const_Flag,class,class> class NEW_TMPL>
+		using Accessor_Template = Builder<T, TYPE, NEW_TMPL, ERASABLE>;
+
+	};
 
 
-} // internal
+} // namespace Storage
+} // namespace internal
 
 
 
@@ -165,46 +176,38 @@ namespace internal {
 template<
 	class T
 >
-using Storage = internal::Storage<
+class Storage : public internal::Storage::Storage<
 	T,
-	internal::default__Storage_Flags,
-	internal::default__Storage_Type,
-	internal::Default__Storage_Accessor_Template
->;
-
-
-
-
-//
-// BUILDER
-//
-template<
-	class T,
-	Storage_Flags FLAGS = internal::default__Storage_Flags,
-	Storage_Type TYPE = internal::default__Storage_Type,
-	template<Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Storage_Accessor_Template
->
-class Storage_Builder {
+	internal::Storage::Type::INDEX_32,
+	internal::Index_Accessor_Template,
+	true // erasable
+> {
+private:
+	using _BASE = internal::Storage::Storage<
+		T,
+		internal::Storage::Type::INDEX_32,
+		internal::Index_Accessor_Template,
+		true // erasable
+	>;
 
 public:
-	using Build = internal::Storage<T, FLAGS, TYPE, ACCESSOR_TEMPLATE>;
+	template<class... Args>
+	Storage(Args&&... args) : _BASE(std::forward<Args>(args)... ) {}
 
-	template<Storage_Type NEW_TYPE>
-	using Type = Storage_Builder<T, FLAGS, NEW_TYPE, ACCESSOR_TEMPLATE>;
-	
-	template<template<Const_Flag,class,class> class NEW_TMPL>
-	using Accessor_Template = Storage_Builder<T, FLAGS, TYPE, NEW_TMPL>;
+	template<class TT>
+	Storage(const std::initializer_list<TT>& l) : _BASE(l) {}
 
-
-	template<Storage_Flags NEW_FLAGS>
-	using Flags           = Storage_Builder<T, NEW_FLAGS, TYPE, ACCESSOR_TEMPLATE>;
-
-	template<Storage_Flags NEW_FLAGS>
-	using Add_Flags       = Storage_Builder<T, FLAGS |  NEW_FLAGS, TYPE, ACCESSOR_TEMPLATE>;
-
-	template<Storage_Flags NEW_FLAGS>
-	using Rem_Flags       = Storage_Builder<T, FLAGS & ~NEW_FLAGS, TYPE, ACCESSOR_TEMPLATE>;
+	using BUILDER = internal::Storage::Builder<
+		T,
+		internal::Storage::Type::INDEX_32,
+		internal::Index_Accessor_Template,
+		false // erasable
+	>;
 };
+
+
+
+
 
 
 
@@ -225,6 +228,6 @@ public:
 
 namespace std {
 	template<class INT>
-	struct numeric_limits<salgo::internal::Int_Wrapper<INT>> : numeric_limits<INT> {};
+	struct numeric_limits<salgo::internal::Storage::Int_Wrapper<INT>> : numeric_limits<INT> {};
 }
 

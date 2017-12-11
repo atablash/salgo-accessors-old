@@ -15,7 +15,7 @@ using namespace salgo;
 
 TEST(Implicit_binary_tree, simple_1) {
 
-	Binary_Tree_Builder<int>::Add_Flags<IMPLICIT>::Build tree;
+	Binary_Tree<int>::BUILDER::Implicit::BUILD tree;
 
 	EXPECT_FALSE(tree.root);
 	EXPECT_FALSE(tree.root().exists);
@@ -32,7 +32,7 @@ TEST(Implicit_binary_tree, simple_1) {
 
 TEST(Implicit_binary_tree, simple_2) {
 
-	Binary_Tree_Builder<int>::Add_Flags<IMPLICIT | BT_VERTS_ERASABLE>::Build tree;
+	Binary_Tree<int>::BUILDER::Implicit::Erasable::BUILD tree;
 
 	EXPECT_FALSE(tree.root().exists);
 	tree.root() = 1;
@@ -56,7 +56,7 @@ TEST(Implicit_binary_tree, simple_2) {
 
 TEST(Implicit_binary_tree, traverse_1) {
 
-	Binary_Tree_Builder<int>::Add_Flags<IMPLICIT | BT_VERTS_ERASABLE>::Build tree;
+	Binary_Tree<int>::BUILDER::Implicit::Erasable::BUILD tree;
 
 	tree.root = 1;
 	tree.root().left = 2;
@@ -78,7 +78,7 @@ TEST(Implicit_binary_tree, traverse_1) {
 
 TEST(Implicit_binary_tree, inorder_1) {
 
-	Binary_Tree_Builder<int>::Add_Flags<IMPLICIT | BT_VERTS_ERASABLE>::Build tree;
+	Binary_Tree<int>::BUILDER::Implicit::Erasable::BUILD tree;
 
 	tree.root() = 1;
 	tree.root().left() = 2;
@@ -154,7 +154,7 @@ TEST(Binary_tree, inorder_1) {
 
 TEST(Binary_Tree, check_link) {
 
-	Binary_Tree_Builder<>::Add_Flags<PARENT_LINKS>::Build tree;
+	Binary_Tree<>::BUILDER::Parent_Links::BUILD tree;
 
 	auto root = tree.add();
 

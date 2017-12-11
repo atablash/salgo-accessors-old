@@ -25,7 +25,7 @@ namespace salgo {
 
 
 namespace internal {
-
+namespace Binary_Tree {
 
 
 
@@ -35,22 +35,30 @@ namespace internal {
 	//
 	template<
 		class T,
-		Binary_Tree_Flags FLAGS,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		bool ERASABLE,
+		bool EVERSIBLE,
+		bool PARENT_LINKS
 	>
 	class Binary_Tree;
 
 
 
 
-	template<class T, Binary_Tree_Flags FLAGS, template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE>
+	template<
+		class T,
+		template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE,
+		bool ERASABLE,
+		bool EVERSIBLE,
+		bool PARENT_LINKS
+	>
 	struct Binary_Tree_T {
 
-		static constexpr auto storage_type = INDEX_32;
+		static constexpr auto storage_type = Storage::INDEX_32;
 
-		using Key = typename internal::Storage_Key<storage_type>;
+		using Key = typename Storage::Storage_Key<storage_type>;
 
-		using My_Binary_Tree = Binary_Tree<T, FLAGS, FINAL_ACCESSOR_TEMPLATE>;
+		using My_Binary_Tree = Binary_Tree<T, FINAL_ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE, PARENT_LINKS>;
 
 
 		struct Vert;
@@ -127,7 +135,7 @@ namespace internal {
 				DCHECK_EQ(Key(), acc().val().children[idx]);
 				acc().val().children[idx] = other.key;
 
-				if constexpr(bool(FLAGS & BT_VERTS_ERASABLE)) {
+				if constexpr(ERASABLE) {
 					DCHECK_EQ(Key(), other.val().parent);
 					other.val().parent = acc().key;
 				}
@@ -154,10 +162,10 @@ namespace internal {
 
 		template<Const_Flag C, class OWNER, class BASE>
 		class Accessor_Template : public BASE,
-				public Acc_Add_parent<bool(FLAGS & PARENT_LINKS), Link<C, OWNER, BASE, false>> {
+				public Acc_Add_parent<PARENT_LINKS, Link<C, OWNER, BASE, false>> {
 
 		private:
-			using BASE_PARENT = Acc_Add_parent<bool(FLAGS & PARENT_LINKS), Link<C, OWNER, BASE, false>>;
+			using BASE_PARENT = Acc_Add_parent<PARENT_LINKS, Link<C, OWNER, BASE, false>>;
 
 		private:
 			template<bool child, int ith = 0>
@@ -191,7 +199,7 @@ namespace internal {
 
 		private:
 			inline auto get_child_idx(int child) const {
-				if constexpr(bool(FLAGS & EVERSIBLE)) {
+				if constexpr(EVERSIBLE) {
 					return child ^ this->val().swap_children;
 				}
 				return child;
@@ -215,19 +223,18 @@ namespace internal {
 		using Aggregate_Accessor_Template = FINAL_ACCESSOR_TEMPLATE<C, OWNER, Accessor_Template<C,OWNER,BASE> >;
 
 
-		using Storage = typename Storage_Builder<Vert>
-			:: template Type <storage_type>
+		using Storage = typename salgo::Storage<Vert>::BUILDER
+			:: template Internal_Type <storage_type>
 			:: template Accessor_Template <Aggregate_Accessor_Template>
-			:: template Flags <Storage_Flags::NONE> // not erasable - binary tree is erasable anyway
-			:: Build;
+			:: BUILD;
 
 
 
 
 
-		using Vert_Base_swap   = Vert_Add_swap <bool(FLAGS & EVERSIBLE)>;
+		using Vert_Base_swap   = Vert_Add_swap <EVERSIBLE>;
 		using Vert_Base_val  = Vert_Add_val<!std::is_same_v<T,void>, T>;
-		using Vert_Base_parent = Vert_Add_parent<bool(FLAGS & PARENT_LINKS), Key>;
+		using Vert_Base_parent = Vert_Add_parent<PARENT_LINKS, Key>;
 
 		struct Vert :
 				Vert_Base_swap,
@@ -259,16 +266,21 @@ namespace internal {
 	//
 	template<
 		class T,
-		Binary_Tree_Flags FLAGS,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		bool ERASABLE,
+		bool EVERSIBLE,
+		bool PARENT_LINKS
 	>
-	class Binary_Tree : public internal::Binary_Tree_T<T, FLAGS, ACCESSOR_TEMPLATE>::Storage {
+	class Binary_Tree : public Binary_Tree_T<T, ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE, PARENT_LINKS>::Storage {
 	private:
-		using BASE = typename internal::Binary_Tree_T<T, FLAGS, ACCESSOR_TEMPLATE>::Storage;
+		using BASE = typename Binary_Tree_T<T, ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE, PARENT_LINKS>::Storage;
 
 	public:
 		using Value = T;
-		static constexpr auto Flags = FLAGS;
+		static constexpr auto Implicit     = false;
+		static constexpr auto Erasable     = ERASABLE;
+		static constexpr auto Eversible    = EVERSIBLE;
+		static constexpr auto Parent_Links = PARENT_LINKS;
 
 	public:
 		Binary_Tree() : BASE(*this) {}
@@ -279,6 +291,38 @@ namespace internal {
 
 
 
+	//
+	// BUILDER
+	//
+	template<
+		class T,
+		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		bool IMPLICIT,
+		bool ERASABLE,
+		bool EVERSIBLE,
+		bool PARENT_LINKS
+	>
+	class Builder {
+	public:
+		using BUILD = std::conditional_t< IMPLICIT,
+			Implicit_Binary_Tree<T, ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE>,
+			Binary_Tree<T, ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE, PARENT_LINKS>
+		>;
+
+		template<template<Const_Flag,class,class> class NEW_ACCESSOR_TEMPLATE>
+		using Accessor_Template = Builder<T, NEW_ACCESSOR_TEMPLATE, IMPLICIT, ERASABLE, EVERSIBLE, PARENT_LINKS>;
+
+		using Implicit     = Builder<T, ACCESSOR_TEMPLATE, true,     ERASABLE, EVERSIBLE, PARENT_LINKS>;
+		using Linked       = Builder<T, ACCESSOR_TEMPLATE, false,    ERASABLE, EVERSIBLE, PARENT_LINKS>;
+
+		using Erasable     = Builder<T, ACCESSOR_TEMPLATE, IMPLICIT, true,     EVERSIBLE, PARENT_LINKS>;
+		using Eversible    = Builder<T, ACCESSOR_TEMPLATE, IMPLICIT, ERASABLE, true,      PARENT_LINKS>;
+		using Parent_Links = Builder<T, ACCESSOR_TEMPLATE, IMPLICIT, ERASABLE, EVERSIBLE, true>;
+	};
+
+
+
+} // namespace Binary_Tree
 } // namespace internal
 
 
@@ -296,47 +340,41 @@ namespace internal {
 //
 // W/O BUILDER
 //
-template<class T>
-using Binary_Tree = internal::Binary_Tree<
-	T,
-	internal::default_Binary_Tree_Flags,
-	internal::Default__Binary_Tree_Accessor_Template
->;
-
-
-
-
-//
-// BUILDER
-//
 template<
-	class T = void,
-	Binary_Tree_Flags FLAGS = internal::default_Binary_Tree_Flags,
-	template<Const_Flag,class,class> class ACCESSOR_TEMPLATE = internal::Default__Binary_Tree_Accessor_Template
+	class T = void
 >
-class Binary_Tree_Builder {
-public:
-	using Build = std::conditional_t<bool(FLAGS & IMPLICIT),
-		internal::Implicit_Binary_Tree<T, FLAGS, ACCESSOR_TEMPLATE>,
-		internal::Binary_Tree<T, FLAGS, ACCESSOR_TEMPLATE>
+class Binary_Tree : public internal::Binary_Tree::Binary_Tree<
+	T,
+	internal::Index_Accessor_Template,
+	//false, // implicit
+	true,  // erasable
+	true,  // eversible
+	true   // parent links
+> {
+private:
+	using _BASE = internal::Binary_Tree::Binary_Tree<
+		T,
+		internal::Index_Accessor_Template,
+		//false, // implicit
+		true,  // erasable
+		true,  // eversible
+		true   // parent links
 	>;
 
-	//
-
-
-	template<template<Const_Flag,class,class> class NEW_ACCESSOR_TEMPLATE>
-	using Accessor_Template = Binary_Tree_Builder<T, FLAGS, NEW_ACCESSOR_TEMPLATE>;
-
-
-	template<Binary_Tree_Flags NEW_FLAGS>
-	using Flags           = Binary_Tree_Builder<T, NEW_FLAGS, ACCESSOR_TEMPLATE>;
-
-	template<Binary_Tree_Flags NEW_FLAGS>
-	using Add_Flags       = Binary_Tree_Builder<T, FLAGS |  NEW_FLAGS, ACCESSOR_TEMPLATE>;
-
-	template<Binary_Tree_Flags NEW_FLAGS>
-	using Rem_Flags       = Binary_Tree_Builder<T, FLAGS & ~NEW_FLAGS, ACCESSOR_TEMPLATE>;
+public:
+	using BUILDER = internal::Binary_Tree::Builder<
+		T,
+		internal::Index_Accessor_Template,
+		false, // implicit
+		false, // erasable
+		false, // eversible
+		false  // parent links
+	>;
 };
+
+
+
+
 
 
 

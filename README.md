@@ -284,8 +284,8 @@ If you use a custom derived accessor with context, you must provide the context 
 ### Other Members
 
 * `size()`: returns number of elements
-* ~~`front()`: returns the first element~~ (not implemented yet)
-* ~~`back()`: returns the last element~~ (not implemented yet)
+* ~~`front()`: returns the first element~~ (not implemented yet?)
+* ~~`back()`: returns the last element~~ (not implemented yet?)
 
 
 ### Notes
@@ -298,7 +298,34 @@ If you use a custom derived accessor with context, you must provide the context 
 Binary_Tree
 -----------
 
-TODO
+It comes in 2 flavours:
+* Regular linked binary tree
+* Implicit binary tree
+
+### Type Builder
+
+To create a full blown linked binary tree, use:
+
+```cpp
+	Binary_Tree<int> tree;
+```
+
+To create a custom object, use the `BUILDER`:
+
+```cpp
+	Binary_Tree<int>::BUILDER::Linked::Parent_Links::BUILD tree;
+```
+
+To create a minimum object (best performance), use:
+
+```cpp
+	Binary_Tree<int>BUILDER::Linked::BUILD linked_tree;
+	// or:
+	Binary_Tree<int>BUILDER::Implicit::BUILD implicit_tree;
+```
+
+
+### Construction
 
 
 
@@ -306,11 +333,11 @@ TODO
 Performance
 ===========
 
-It's not some Python library - I know your needs.
+It's not a Python library - I know your needs.
 
 Although there's plenty of fancy accessor machinery that definitely works slow in debug mode, the good news is that most of this stuff gets optimized out quite nicely.
 
-Salgo is developed under *g++ 7.2.0*. It optimizes out accessors slightly better than *clang 5.0.1*. At least with the default *CMake* compiler flags for *Release*. You might like to experiment with compiler flags a bit more and let me know.
+Salgo is developed under *g++ 7.2.0*. It optimizes out accessors slightly better than *clang 5.0.1*. At least with the default *CMake* compiler flags for *Release*. You might want to experiment with compiler flags a bit more and let me know.
 
 Surprisingly, a `std::vector<int>` wrapped in a `salgo::Dense_Map<int>` (without `ERASABLE` flag) is faster than a regular `std::vector<int>` by 31%. Check the `Vector_dense_map_noerase` test. How is this possible? I don't know, I haven't inspected this further, but you're welcome to investigate and let me know.
 
