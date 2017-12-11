@@ -13,6 +13,146 @@ Why?
 
 
 
+Reference
+=========
+
+Below is a description of some of the algorithms and data structures in Salgo.
+
+If that's not enough, you can also use the `test` source code as a reference.
+
+
+
+Dense_Map
+---------
+
+`Dense_Map` is a wrapper around `std::vector` or `std::deque`, with some differences:
+ * It has as interface more similar to `std::map`
+ * We refer to its indices as *keys*
+ * It can have *negative* keys
+ * It can have large keys, as long as they're close together
+ * You can assign a value to a non-existing element and it's automatically created
+ * It exposes all the accessor machinery of course
+
+```cpp
+	Dense_Map<int> m = {-1, 2, -3, 4, -12}; // creates elements at keys 0,1,2,3,4
+
+	m[10] = 1; // ...and one more element at key 10
+
+	for(auto e : m) if(e < 0) e.erase();
+
+	int sum = 0;
+	for(auto e : m) sum += e;
+
+	cout << sum << endl; // prints 7
+```
+
+
+### Type Builder
+
+By default, a full-blown object with all the functionality is constructed:
+
+```cpp
+	Dense_Map<int> m;
+```
+
+If you want a custom object, use the `BUILDER`:
+
+```cpp
+	Dense_Map<int>::BUILDER::Vector::Erasable::BUILD m;
+```
+
+The `BUILDER` supports following settings:
+ * `Vector` - use the `std::vector` version of the *Dense_Map*: keys will start from 0
+ * `Deque` - use the `std::deque` version of the *Dense_Map*: keys can start from arbitrary integer
+ * `Erasable` - elements can be erased, leaving "holes" that still occupy memory
+ * `Accessor_Template` - a template for extending the default accessor (see the relevant section)
+
+To get the bare minimum (*Vector* version, not *Erasable*), just don't supply any options:
+
+```cpp
+	Dense_Map<int>::BUILDER::BUILD m;
+```
+
+
+### Construction
+
+Without any arguments, to create an empty `Dense_Map` that will start inserting elements at key *0*:
+
+```cpp
+	Dense_Map<int> dm;
+```
+
+To start inserting elements at key *42*:
+
+```cpp
+	Dense_Map<int> dm( 42 );
+```
+
+From an initializer list:
+
+```cpp
+	Dense_Map<int> dm = {1,3,-5,100}; // will create elements at keys 0,1,2,3
+```
+
+If you use a custom derived accessor with context, you must provide the context on `Dense_Map` construction:
+
+```cpp
+	using DM = Dense_Map<int>::BUILDER::Accessor_Template< My_Custom_Accessor >::BUILD;
+	DM dm( some_context );
+```
+
+
+### Other Members
+
+* `size()`: returns number of elements
+* ~~`front()`: returns the first element~~ (not implemented yet?)
+* ~~`back()`: returns the last element~~ (not implemented yet?)
+
+
+### Notes
+
+ * Currently iteration doesn't jump over long erased elements sequences, so iterating over erased elements will still take time.
+ * It can construct some of your objects before you want it. It's still not implemented properly for usage with objects.
+
+
+
+Binary_Tree
+-----------
+
+It comes in 2 flavours:
+* Regular linked binary tree
+* Implicit binary tree
+
+### Type Builder
+
+To create a full blown linked binary tree, use:
+
+```cpp
+	Binary_Tree<int> tree;
+```
+
+To create a custom object, use the `BUILDER`:
+
+```cpp
+	Binary_Tree<int>::BUILDER::Linked::Parent_Links::BUILD tree;
+```
+
+To create a minimum object (best performance), use:
+
+```cpp
+	Binary_Tree<int>BUILDER::Linked::BUILD linked_tree;
+	// or:
+	Binary_Tree<int>BUILDER::Implicit::BUILD implicit_tree;
+```
+
+
+### Construction
+
+TODO
+
+
+
+
 Library Design
 =================
 
@@ -220,144 +360,6 @@ Now you can instantiate `A<B<A>>` and `B<A>` and there's no circular dependency.
 
 
 
-Reference
-=========
-
-Below is a description of some of the algorithms and data structures in Salgo.
-
-If that's not enough, you can also use the `test` source code as a reference.
-
-
-
-Dense_Map
----------
-
-`Dense_Map` is a wrapper around `std::vector` or `std::deque`, with some differences:
- * It has as interface more similar to `std::map`
- * We refer to its indices as *keys*
- * It can have *negative* keys
- * It can have large keys, as long as they're close together
- * You can assign a value to a non-existing element and it's automatically created
- * It exposes all the accessor machinery of course
-
-```cpp
-	Dense_Map<int> m = {-1, 2, -3, 4, -12}; // creates elements at keys 0,1,2,3,4
-
-	m[10] = 1; // ...and one more element at key 10
-
-	for(auto e : m) if(e < 0) e.erase();
-
-	int sum = 0;
-	for(auto e : m) sum += e;
-
-	cout << sum << endl; // prints 7
-```
-
-
-### Type Builder
-
-By default, a full-blown object with all the functionality is constructed:
-
-```cpp
-	Dense_Map<int> m;
-```
-
-If you want a custom object, use the `BUILDER`:
-
-```cpp
-	Dense_Map<int>::BUILDER::Vector::Erasable::BUILD m;
-```
-
-The `BUILDER` supports following settings:
- * `Vector` - use the `std::vector` version of the *Dense_Map*: keys will start from 0
- * `Deque` - use the `std::deque` version of the *Dense_Map*: keys can start from arbitrary integer
- * `Erasable` - elements can be erased, leaving "holes" that still occupy memory
- * `Accessor_Template` - a template for extending the default accessor, using *2-way CRTP* pattern (see the relevant section)
-
-To get the bare minimum (*Vector* version, not *Erasable*), just don't supply any options:
-
-```cpp
-	Dense_Map<int>::BUILDER::BUILD m;
-```
-
-
-### Construction
-
-Without any arguments, to create an empty `Dense_Map` that will start inserting elements at key *0*:
-
-```cpp
-	Dense_Map<int> dm;
-```
-
-To start inserting elements at key *42*:
-
-```cpp
-	Dense_Map<int> dm( 42 );
-```
-
-From an initializer list:
-
-```cpp
-	Dense_Map<int> dm = {1,3,-5,100}; // will create elements at keys 0,1,2,3
-```
-
-If you use a custom derived accessor with context, you must provide the context on `Dense_Map` construction:
-
-```cpp
-	using DM = Dense_Map<int>::BUILDER::Accessor_Template< My_Custom_Accessor >::BUILD;
-	DM dm( some_context );
-```
-
-
-### Other Members
-
-* `size()`: returns number of elements
-* ~~`front()`: returns the first element~~ (not implemented yet?)
-* ~~`back()`: returns the last element~~ (not implemented yet?)
-
-
-### Notes
-
- * Currently iteration doesn't jump over long erased elements sequences, so iterating over erased elements will still take time.
- * It can construct some of your objects before you want it. It's still not implemented properly for usage with objects.
-
-
-
-Binary_Tree
------------
-
-It comes in 2 flavours:
-* Regular linked binary tree
-* Implicit binary tree
-
-### Type Builder
-
-To create a full blown linked binary tree, use:
-
-```cpp
-	Binary_Tree<int> tree;
-```
-
-To create a custom object, use the `BUILDER`:
-
-```cpp
-	Binary_Tree<int>::BUILDER::Linked::Parent_Links::BUILD tree;
-```
-
-To create a minimum object (best performance), use:
-
-```cpp
-	Binary_Tree<int>BUILDER::Linked::BUILD linked_tree;
-	// or:
-	Binary_Tree<int>BUILDER::Implicit::BUILD implicit_tree;
-```
-
-
-### Construction
-
-
-
-
 Performance
 ===========
 
@@ -367,7 +369,7 @@ Although there's plenty of fancy accessor machinery that definitely works slow i
 
 Salgo is developed under *g++ 7.2.0*. It optimizes out accessors slightly better than *clang 5.0.1*. At least with the default *CMake* compiler flags for *Release*. You might want to experiment with compiler flags a bit more and let me know.
 
-Surprisingly, a `std::vector<int>` wrapped in a `salgo::Dense_Map<int>` (without `ERASABLE` flag) is faster than a regular `std::vector<int>` by 31%. Check the `Vector_dense_map_noerase` test. How is this possible? I don't know, I haven't inspected this further, but you're welcome to investigate and let me know.
+Surprisingly, a `std::vector<int>` wrapped in a `salgo::Dense_Map<int>` (without `ERASABLE` flag) is faster than a regular `std::vector<int>` by 56%. Check the `Vector_dense_map_noerase` test. How is this possible? I don't know, I haven't inspected this further, but you're welcome to investigate and let me know.
 
 So don't worry about the performance too much. Check the `test` directory or Travis build for details about the performance of different Salgo data structures and algorithms.
 

@@ -285,15 +285,17 @@ namespace Dense_Map {
 		private:
 			struct Exists {
 				operator bool() const {
-					return acc._idx < (int)acc.owner._raw.size()
-						&& acc._idx >= 0
-						&& acc.owner._raw[acc._idx].get_exists();
+					return _idx < (int)owner._raw.size()
+						&& _idx >= 0
+						&& owner._raw[_idx].get_exists();
 				}
 
 			private:
-				Exists(Accessor_Base& a) : acc(a) {}
+				Exists(Const<Dense_Map,C>& o, Key i) : owner(o), _idx(i) {}
 				friend Accessor_Base;
-				Accessor_Base& acc;
+
+				Const<Dense_Map,C>& owner;
+				Key _idx;
 			};
 
 			template<bool forward>
@@ -306,14 +308,14 @@ namespace Dense_Map {
 
 					if constexpr(ERASABLE) {
 						auto idx = _find();
-						return idx >= 0 && idx < acc.owner._raw.size();
+						return idx >= 0 && idx < owner._raw.size();
 					}
 					else {
 						if constexpr(forward) {
-							return acc._idx + 1 < acc.owner._raw.size();
+							return _idx + 1 < owner._raw.size();
 						}
 						else {
-							return acc._idx > 0;
+							return _idx > 0;
 						}
 					}
 				}
@@ -322,14 +324,14 @@ namespace Dense_Map {
 					if constexpr(ERASABLE) {
 						auto idx = _find();
 						DCHECK_NE(Key(), idx);
-						return acc.owner.template create_accessor<C>(idx);
+						return owner.template create_accessor<C>(idx);
 					}
 					else {
 						if constexpr(forward) {
-							return acc.owner.template create_accessor<C>(acc._idx + 1);
+							return owner.template create_accessor<C>(_idx + 1);
 						}
 						else {
-							return acc.owner.template create_accessor<C>[acc._idx - 1];
+							return owner.template create_accessor<C>[_idx - 1];
 						}
 					}
 				}
@@ -338,14 +340,14 @@ namespace Dense_Map {
 					if constexpr(ERASABLE) {
 						auto idx = _find();
 						DCHECK_NE(Key(), idx);
-						return acc.owner.template create_accessor<CONST>(idx);
+						return owner.template create_accessor<CONST>(idx);
 					}
 					else {
 						if constexpr(forward) {
-							return acc.owner.template create_accessor<CONST>(acc._idx + 1);
+							return owner.template create_accessor<CONST>(_idx + 1);
 						}
 						else {
-							return acc.owner.template create_accessor<CONST>[acc._idx - 1];
+							return owner.template create_accessor<CONST>[_idx - 1];
 						}
 					}
 				}
@@ -354,17 +356,17 @@ namespace Dense_Map {
 				auto _find() const {
 					DCHECK(ERASABLE);
 					
-					auto idx = acc._idx;
+					auto idx = _idx;
 
 					if constexpr(forward) {
 						for(;;) {
 							++idx;
-							if(idx >= (int)acc.owner._raw.size()) {
-								DCHECK_EQ(acc.owner._raw.size(), idx);
+							if(idx >= (int)owner._raw.size()) {
+								DCHECK_EQ(owner._raw.size(), idx);
 								//idx = Key();
 								break;
 							}
-							if(acc.owner._raw[idx].exists) break;
+							if(owner._raw[idx].exists) break;
 						}
 					}
 					else {
@@ -375,7 +377,7 @@ namespace Dense_Map {
 								//idx = Key();
 								break;
 							}
-							if(acc.owner._raw[idx].exists) break;
+							if(owner._raw[idx].exists) break;
 						}
 					}
 
@@ -384,9 +386,11 @@ namespace Dense_Map {
 
 
 			private:
-				Link(Accessor_Base& a) : acc(a) {}
+				Link(Const<Dense_Map,C>& o, Key i) : owner(o), _idx(i) {}
 				friend Accessor_Base;
-				Accessor_Base& acc;
+
+				Const<Dense_Map,C>& owner;
+				Key _idx;
 			};
 
 
@@ -466,9 +470,9 @@ namespace Dense_Map {
 					key(i + o.get_offset()),
 					val(val.create(o._raw[i].value)),
 					//value(o._raw[i].value),
-					exists(*this),
-					prev(*this),
-					next(*this),
+					exists(o,i),
+					prev(o,i),
+					next(o,i),
 					owner(o),
 					_idx(i) {}
 
