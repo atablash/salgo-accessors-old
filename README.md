@@ -161,7 +161,7 @@ Below you can see an example from the Smesh library. Dense_Map's accessor is ext
 
 Here you can see the *2-way CRTP* pattern in action: both your derived class and base class know about each other.
 
-In the above example, you can see an extension to the `Dense_Map`, that exposes some additional interface:
+In the above example, you can see an extension to the `Dense_Map` that exposes some additional interface:
 * `pos`: a pseudo-reference to vertex position
 * `props`: a pseudo-reference to vertex properties
 * `hverts`: a pseudo-reference to *vertex->polygon* links list
@@ -188,6 +188,11 @@ To use your new accessor with the *Dense_Map*:
 	using Verts_Map = Dense_Map<Vertex>::BUILDER::Accessor_Template<A_Vert_Templace>::BUILD;
 	Verts_Map my_verts_map( my_mesh_context );
 ```
+
+
+#### The *2-way CRTP* Pattern
+
+In case you're wondering, what this is
 
 
 

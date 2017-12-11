@@ -97,13 +97,11 @@ namespace Dense_Map {
 		template<Const_Flag C>
 		using Accessor = ACCESSOR_TEMPLATE<C, Dense_Map, Accessor_Base<C>>;
 
-		//friend Accessor<CONST>;
-		//friend Accessor<MUTAB>;
 
 	private:
 		static constexpr bool has_context = !std::is_same_v<typename Accessor<MUTAB>::Context,void>;
 
-		// unfortunately storing uint8_t here
+		// TODO: don't store uint8 here if no context
 		using Context = std::conditional_t<has_context, typename Accessor<MUTAB>::Context, uint8_t>;
 		Context context;
 
@@ -377,6 +375,7 @@ namespace Dense_Map {
 					owner(o),
 					_idx(i) {}
 
+			// TODO: get rid of member references and remove these:
 			auto operator()() const { return update(); }
 			auto update()     const { return owner.template create_accessor<C>(_idx); }
 

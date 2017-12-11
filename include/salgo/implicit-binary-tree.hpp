@@ -132,8 +132,8 @@ namespace Binary_Tree {
 	//
 	private:
 		struct Vert :
-				Vert_Add_swap <EVERSIBLE>,
-				Vert_Add_val<!std::is_same_v<Value,void>, Value> {
+				Vert_Add_evert <EVERSIBLE>,
+				Vert_Add_val <!std::is_same_v<Value,void>, Value> {
 
 			using Vert_Add_val<!std::is_same_v<Value,void>, Value>::operator=;
 		};

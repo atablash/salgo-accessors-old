@@ -13,8 +13,6 @@ namespace internal {
 	//
 	// operator-- is disabled to prevent users from computing begin() too often
 	//
-	// TODO: make it work for linked binary trees (not only implicit)
-	//
 	template<class TREE>
 	class Inorder {
 	private:
@@ -34,10 +32,17 @@ namespace internal {
 			return Iterator(_tree.end(), true);
 		}
 
-		// TODO: rbegin, rend
-
 
 	private:
+
+		/*
+		template<Const_Flag C>
+		class Accessor {
+		public:
+			Accessor()
+		};
+		*/
+
 
 		//
 		#define SELF (**this)
@@ -92,40 +97,42 @@ namespace internal {
 		private:
 			void increment() {
 
-				if( SELF.right().exists ) {
+				if( SELF.right ) {
 					idx = SELF.right().key;
 
-					while( SELF.left().exists )  idx = SELF.left().key;
+					while( SELF.left )  idx = SELF.left().key;
 				}
 				else {
 					for(;;) {
 						auto prev_idx = idx;
 						idx = SELF.parent().key;
 
-						if(idx != decltype(BASE::idx)() && SELF.right().exists && SELF.right().key == prev_idx) continue;
+						if(idx != decltype(BASE::idx)() && SELF.right && SELF.right().key == prev_idx) continue;
 						else break;
 					}
 				}
 			}
 
+
+			// currently never used:
 			/*
 			void decrement() {
 
 				if(idx > 0) {
-					if( SELF.left().exists ) {
+					if( SELF.left ) {
 						idx = SELF.left().key;
 
-						while( SELF.right().exists )  idx = SELF.right().key;
+						while( SELF.right )  idx = SELF.right().key;
 					}
 					else {
 						do {
 							auto prev_idx = idx;
 							idx = SELF.parent().key;
-						} while(idx > 0 && SELF.left().exists && SELF.left().key == prev_idx);
+						} while(idx > 0 && SELF.left && SELF.left().key == prev_idx);
 					}
 				}
 				else { // idx == 0
-					while( SELF.right().exists )  idx = SELF.right().key;
+					while( SELF.right )  idx = SELF.right().key;
 				}
 			}
 			*/

@@ -12,8 +12,8 @@ namespace Binary_Tree {
 	//
 	// swap flags
 	//
-	template<bool> struct Vert_Add_swap       {};
-	template<    > struct Vert_Add_swap<true> { bool swap_children = false; };
+	template<bool> struct Vert_Add_evert       {};
+	template<    > struct Vert_Add_evert<true> { bool evert = false; };
 
 
 	//
@@ -34,6 +34,36 @@ namespace Binary_Tree {
 
 		template<class... Args>
 		Vert_Add_val(Args&&... args) : val(std::forward<Args>(args)... ) {}
+	};
+
+
+	//
+	// vertex aggreg
+	//
+	template<bool, class A> struct Vert_Add_aggreg         {};
+	template<      class A> struct Vert_Add_aggreg<true,A> {
+
+		A val = A();
+
+		Vert_Add_aggreg() = default;
+
+		template<class... Args>
+		Vert_Add_aggreg(Args&&... args) : val(std::forward<Args>(args)... ) {}
+	};
+
+
+	//
+	// vertex propag
+	//
+	template<bool, class P> struct Vert_Add_propag         {};
+	template<      class P> struct Vert_Add_propag<true,P> {
+
+		P val = P();
+
+		Vert_Add_propag() = default;
+
+		template<class... Args>
+		Vert_Add_propag(Args&&... args) : val(std::forward<Args>(args)... ) {}
 	};
 }
 

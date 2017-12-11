@@ -36,6 +36,8 @@ namespace Binary_Tree {
 	template<
 		class T,
 		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		class AGGREG,
+		class PROPAG,
 		bool ERASABLE,
 		bool EVERSIBLE,
 		bool PARENT_LINKS
@@ -48,6 +50,8 @@ namespace Binary_Tree {
 	template<
 		class T,
 		template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE,
+		class AGGREG,
+		class PROPAG,
 		bool ERASABLE,
 		bool EVERSIBLE,
 		bool PARENT_LINKS
@@ -58,7 +62,7 @@ namespace Binary_Tree {
 
 		using Key = typename Storage::Storage_Key<storage_type>;
 
-		using My_Binary_Tree = Binary_Tree<T, FINAL_ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE, PARENT_LINKS>;
+		using My_Binary_Tree = Binary_Tree<T, FINAL_ACCESSOR_TEMPLATE, AGGREG, PROPAG, ERASABLE, EVERSIBLE, PARENT_LINKS>;
 
 
 		struct Vert;
@@ -116,42 +120,106 @@ namespace Binary_Tree {
 
 		public:
 			inline auto operator()() const {
-				auto idx = acc().get_child_idx(ith);
-				return acc()._tree[ child ? acc().val().children[idx] : acc().val().parent ];
+				if constexpr(EVERSIBLE && child) {
+					DCHECK(acc().val().evert == false) << "need to evert_propagate first";
+				}
+
+				return acc().tree[ child ? acc().val().children[ith] : acc().val().parent ];
 			}
 
 			template<class... Args>
 			inline auto create(Args&&... args) {
-				auto v = acc()._tree.add(std::forward<Args>(args)... );
+				auto v = acc().tree.add(std::forward<Args>(args)... );
 				link(v);
 				return v();
 			}
 
 			template<Const_Flag CC, bool ch = child, class = std::enable_if_t<ch>>
 			inline void link(Accessor_Template<CC,OWNER,BASE>& other) {
-				auto idx = acc().get_child_idx(ith);
-				DCHECK_GE(idx, 0);
-				DCHECK_LE(idx, 1);
-				DCHECK_EQ(Key(), acc().val().children[idx]);
-				acc().val().children[idx] = other.key;
+				if constexpr(EVERSIBLE) {
+					DCHECK(acc().val().evert == false) << "need to evert_propagate first";
+				}
 
-				if constexpr(ERASABLE) {
+				DCHECK_EQ(Key(), acc().val().children[ith]);
+				acc().val().children[ith] = other.key;
+
+				if constexpr(PARENT_LINKS) {
 					DCHECK_EQ(Key(), other.val().parent);
 					other.val().parent = acc().key;
 				}
 			}
 
+			inline void unlink() {
+				DCHECK(*this) << "already not linked";
+
+				if constexpr(child) {
+					if constexpr(PARENT_LINKS) {
+						DCHECK_EQ(acc().key, (*this)().val().parent)
+							<< "child does not link back to us";
+
+						(*this)().val().parent = Key();
+					}
+
+					if constexpr(EVERSIBLE && child) {
+						DCHECK(acc().val().evert == false) << "need to evert_propagate first";
+					}
+
+					acc().val().children[ith] = Key();
+				}
+				else { // parent
+					auto parent = (*this)();
+					DCHECK( parent.evert == false )
+						<< "need to evert_propagate from the parent first";
+
+					if(acc().is_left) {
+						DCHECK( parent.left == acc ) << "parent does not link back to us";
+						parent.left.unlink();
+					}
+					else {
+						DCHECK( parent.right == acc) << "parent does not link back to us";
+						parent.right.unlink();
+					}
+				}
+			}
+
 			inline operator bool() const {
 				if constexpr(child) {
-					auto idx = acc().get_child_idx(ith);
-					return acc().val().children[idx] != Key();
+					if constexpr(EVERSIBLE) {
+						DCHECK(acc().val().evert == false) << "need to evert_propagate first";
+					}
+					return acc().val().children[ith] != Key();
 				}
 				else return acc().val().parent != Key();
 			}
 
-		public:
-			Link() {}
+		private:
 			Link(const Accessor& a) : acc(a) {}
+			friend Accessor;
+			friend Acc_Add_parent<true,Link>;
+
+		private:
+			const Accessor& acc;
+		};
+
+
+
+
+		template<Const_Flag C, class OWNER, class BASE, int ith>
+		class Link_Test {
+		private:
+			using Accessor = Accessor_Template<C,OWNER,BASE>;
+
+		public:
+			inline operator bool() const {
+				DCHECK( acc().parent ) << "is_left or is_right called on a parent-less vertex";
+				DCHECK( acc().parent().val().evert == false)
+					<< "need to evert_propagate from the parent vertex first";
+				return acc().parent().val().children[ith] == acc().key;
+			}
+
+		private:
+			Link_Test(const Accessor& a) : acc(a) {}
+			friend Accessor;
 
 		private:
 			const Accessor& acc;
@@ -167,19 +235,77 @@ namespace Binary_Tree {
 		private:
 			using BASE_PARENT = Acc_Add_parent<PARENT_LINKS, Link<C, OWNER, BASE, false>>;
 
+		public:
+			static constexpr auto Eversible = EVERSIBLE;
+
 		private:
 			template<bool child, int ith = 0>
-			using MyLink = Link<C, OWNER, BASE, child, ith>;
+			using My_Link = Link<C, OWNER, BASE, child, ith>;
+
+			template<int ith>
+			using My_Link_Test = Link_Test<C, OWNER, BASE, ith>;
 
 		public:
 			using Context = Const<My_Binary_Tree,C>&;
 			using BASE::operator=;
 
-
-
 		public:
-			MyLink<true,0> left;
-			MyLink<true,1> right;
+			My_Link<true,0> left;
+			My_Link<true,1> right;
+
+			My_Link_Test<0> is_left;
+			My_Link_Test<1> is_right;
+
+
+			void aggregate() {
+				using A = decltype( this->val().aggreg );
+				using P = decltype( this->val().propag );
+
+				A a = A();
+				a.aggregate( this->val().val );
+				if(left)  a.aggregate(  left().val().aggreg );
+				if(right) a.aggregate( right().val().aggreg );
+
+				DCHECK_EQ(P(), this->val().propag) << "need to propagate first";
+
+				this->val().aggreg = a;
+			}
+
+
+			void propagate() {
+				using P = decltype( this->val().propag );
+
+				if(left) {
+					this->val().propag.apply( left().val().aggreg );
+					this->val().propag.apply( left().val().propag );
+				}
+
+				if(right) {
+					this->val().propag.apply( right().val().aggreg );
+					this->val().propag.apply( right().val().propag );
+				}
+
+				this->val().propag = P();
+			}
+
+
+			void evert() {
+				static_assert(EVERSIBLE, "can't evert, tree not EVERSIBLE");
+
+				//DCHECK(this->val().evert == false) << "subtree already everted";
+				this->val().evert ^= 1; // toggle
+			}
+
+
+			void evert_propagate() {
+				if constexpr(EVERSIBLE) if(this->val().evert) {
+					this->val().evert = false;
+					std::swap(this->val().children[0], this->val().children[1]);
+
+					if(left)  left ().evert();
+					if(right) right().evert();
+				}
+			}
 
 
 			//template<bool B = false> // does not work in g++ (clang's fine)
@@ -200,20 +326,28 @@ namespace Binary_Tree {
 		private:
 			inline auto get_child_idx(int child) const {
 				if constexpr(EVERSIBLE) {
-					return child ^ this->val().swap_children;
+					return child ^ this->val().evert;
 				}
 				return child;
 			}
 
 		protected:
 			Accessor_Template( Context& c, Const<OWNER,C>& o, int i)
-					: BASE(o, i), BASE_PARENT(*this), left(*this), right(*this), _tree(c) {}
+					: BASE(o, i),
+					BASE_PARENT(*this),
+					left(*this),
+					right(*this),
+					is_left(*this),
+					is_right(*this),
+					tree(c) {}
+
+		public:
+			Context tree;
 
 		private:
-			Context _tree;
-			friend MyLink<false>;
-			friend MyLink<true,0>;
-			friend MyLink<true,1>;
+			friend My_Link<false>;
+			friend My_Link<true,0>;
+			friend My_Link<true,1>;
 		};
 
 
@@ -232,14 +366,18 @@ namespace Binary_Tree {
 
 
 
-		using Vert_Base_swap   = Vert_Add_swap <EVERSIBLE>;
-		using Vert_Base_val  = Vert_Add_val<!std::is_same_v<T,void>, T>;
+		using Vert_Base_swap   = Vert_Add_evert <EVERSIBLE>;
+		using Vert_Base_val    = Vert_Add_val<!std::is_same_v<T,void>, T>;
 		using Vert_Base_parent = Vert_Add_parent<PARENT_LINKS, Key>;
+		using Vert_Base_aggreg = Vert_Add_aggreg<!std::is_same_v<AGGREG,void>, AGGREG>;
+		using Vert_Base_propag = Vert_Add_propag<!std::is_same_v<PROPAG,void>, PROPAG>;
 
 		struct Vert :
 				Vert_Base_swap,
 				Vert_Base_val,
-				Vert_Base_parent {
+				Vert_Base_parent,
+				Vert_Base_aggreg,
+				Vert_Base_propag {
 
 			Vert() {}
 
@@ -267,13 +405,23 @@ namespace Binary_Tree {
 	template<
 		class T,
 		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		class AGGREG,
+		class PROPAG,
 		bool ERASABLE,
 		bool EVERSIBLE,
 		bool PARENT_LINKS
 	>
-	class Binary_Tree : public Binary_Tree_T<T, ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE, PARENT_LINKS>::Storage {
+	class Binary_Tree :
+			public Binary_Tree_T<
+				T, ACCESSOR_TEMPLATE, AGGREG, PROPAG,
+				ERASABLE, EVERSIBLE, PARENT_LINKS
+			>::Storage {
+
 	private:
-		using BASE = typename Binary_Tree_T<T, ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE, PARENT_LINKS>::Storage;
+		using BASE = typename Binary_Tree_T<
+			T, ACCESSOR_TEMPLATE, AGGREG, PROPAG,
+			ERASABLE, EVERSIBLE, PARENT_LINKS
+		>::Storage;
 
 	public:
 		using Value = T;
@@ -297,6 +445,8 @@ namespace Binary_Tree {
 	template<
 		class T,
 		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		class AGGREG,
+		class PROPAG,
 		bool IMPLICIT,
 		bool ERASABLE,
 		bool EVERSIBLE,
@@ -305,19 +455,38 @@ namespace Binary_Tree {
 	class Builder {
 	public:
 		using BUILD = std::conditional_t< IMPLICIT,
-			Implicit_Binary_Tree<T, ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE>,
-			Binary_Tree<T, ACCESSOR_TEMPLATE, ERASABLE, EVERSIBLE, PARENT_LINKS>
+			Implicit_Binary_Tree<T, ACCESSOR_TEMPLATE, /*AGGREG, PROPAG,*/ ERASABLE, EVERSIBLE>, // TODO
+			Binary_Tree<T, ACCESSOR_TEMPLATE, AGGREG, PROPAG, ERASABLE, EVERSIBLE, PARENT_LINKS>
 		>;
 
 		template<template<Const_Flag,class,class> class NEW_ACCESSOR_TEMPLATE>
-		using Accessor_Template = Builder<T, NEW_ACCESSOR_TEMPLATE, IMPLICIT, ERASABLE, EVERSIBLE, PARENT_LINKS>;
+		using Accessor_Template =
+			Builder<T, NEW_ACCESSOR_TEMPLATE, AGGREG, PROPAG, IMPLICIT, ERASABLE, EVERSIBLE, PARENT_LINKS>;
 
-		using Implicit     = Builder<T, ACCESSOR_TEMPLATE, true,     ERASABLE, EVERSIBLE, PARENT_LINKS>;
-		using Linked       = Builder<T, ACCESSOR_TEMPLATE, false,    ERASABLE, EVERSIBLE, PARENT_LINKS>;
+		using Implicit =
+			Builder<T, ACCESSOR_TEMPLATE, AGGREG, PROPAG, true,     ERASABLE, EVERSIBLE, PARENT_LINKS>;
 
-		using Erasable     = Builder<T, ACCESSOR_TEMPLATE, IMPLICIT, true,     EVERSIBLE, PARENT_LINKS>;
-		using Eversible    = Builder<T, ACCESSOR_TEMPLATE, IMPLICIT, ERASABLE, true,      PARENT_LINKS>;
-		using Parent_Links = Builder<T, ACCESSOR_TEMPLATE, IMPLICIT, ERASABLE, EVERSIBLE, true>;
+		using Linked =
+			Builder<T, ACCESSOR_TEMPLATE, AGGREG, PROPAG, false,    ERASABLE, EVERSIBLE, PARENT_LINKS>;
+
+
+		template<class NEW_AGGREG>
+		using Aggregate =
+			Builder<T, ACCESSOR_TEMPLATE, NEW_AGGREG, PROPAG, IMPLICIT, ERASABLE, EVERSIBLE, PARENT_LINKS>;
+
+		template<class NEW_PROPAG>
+		using Propagate =
+			Builder<T, ACCESSOR_TEMPLATE, AGGREG, NEW_PROPAG, IMPLICIT, ERASABLE, EVERSIBLE, PARENT_LINKS>;
+
+
+		using Erasable =
+			Builder<T, ACCESSOR_TEMPLATE, AGGREG, PROPAG, IMPLICIT, true,     EVERSIBLE, PARENT_LINKS>;
+
+		using Eversible =
+			Builder<T, ACCESSOR_TEMPLATE, AGGREG, PROPAG, IMPLICIT, ERASABLE, true,      PARENT_LINKS>;
+
+		using Parent_Links =
+			Builder<T, ACCESSOR_TEMPLATE, AGGREG, PROPAG, IMPLICIT, ERASABLE, EVERSIBLE, true>;
 	};
 
 
@@ -346,6 +515,8 @@ template<
 class Binary_Tree : public internal::Binary_Tree::Binary_Tree<
 	T,
 	internal::Index_Accessor_Template,
+	void,  // aggreg
+	void,  // propag
 	//false, // implicit
 	true,  // erasable
 	true,  // eversible
@@ -355,6 +526,8 @@ private:
 	using _BASE = internal::Binary_Tree::Binary_Tree<
 		T,
 		internal::Index_Accessor_Template,
+		void,  // aggreg
+		void,  // propag
 		//false, // implicit
 		true,  // erasable
 		true,  // eversible
@@ -365,6 +538,8 @@ public:
 	using BUILDER = internal::Binary_Tree::Builder<
 		T,
 		internal::Index_Accessor_Template,
+		void,  // aggreg
+		void,  // propag
 		false, // implicit
 		false, // erasable
 		false, // eversible
