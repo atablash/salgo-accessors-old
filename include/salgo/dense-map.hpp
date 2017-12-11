@@ -285,22 +285,116 @@ namespace Dense_Map {
 		private:
 			struct Exists {
 				operator bool() const {
-					return idx < (int)owner._raw.size()
-						&& idx >= 0
-						&& owner._raw[idx].get_exists();
+					return acc._idx < (int)acc.owner._raw.size()
+						&& acc._idx >= 0
+						&& acc.owner._raw[acc._idx].get_exists();
 				}
 
 			private:
-				Exists(Const<Dense_Map,C>& o, Key i) : owner(o), idx(i) {}
+				Exists(Accessor_Base& a) : acc(a) {}
 				friend Accessor_Base;
-
-				Const<Dense_Map,C>& owner;
-				mutable Key idx;
+				Accessor_Base& acc;
 			};
+
+			template<bool forward>
+			struct Link {
+				operator bool() const {
+
+					//static_assert(!ERASABLE,
+					//	"operator bool() is disabled for Erasable Dense_Map (performance) - "
+					//	"use prev().exists or next().exists instead");
+
+					if constexpr(ERASABLE) {
+						auto idx = _find();
+						return idx >= 0 && idx < acc.owner._raw.size();
+					}
+					else {
+						if constexpr(forward) {
+							return acc._idx + 1 < acc.owner._raw.size();
+						}
+						else {
+							return acc._idx > 0;
+						}
+					}
+				}
+
+				auto operator()() {
+					if constexpr(ERASABLE) {
+						auto idx = _find();
+						DCHECK_NE(Key(), idx);
+						return acc.owner.template create_accessor<C>(idx);
+					}
+					else {
+						if constexpr(forward) {
+							return acc.owner.template create_accessor<C>(acc._idx + 1);
+						}
+						else {
+							return acc.owner.template create_accessor<C>[acc._idx - 1];
+						}
+					}
+				}
+
+				auto operator()() const {
+					if constexpr(ERASABLE) {
+						auto idx = _find();
+						DCHECK_NE(Key(), idx);
+						return acc.owner.template create_accessor<CONST>(idx);
+					}
+					else {
+						if constexpr(forward) {
+							return acc.owner.template create_accessor<CONST>(acc._idx + 1);
+						}
+						else {
+							return acc.owner.template create_accessor<CONST>[acc._idx - 1];
+						}
+					}
+				}
+
+			private:
+				auto _find() const {
+					DCHECK(ERASABLE);
+					
+					auto idx = acc._idx;
+
+					if constexpr(forward) {
+						for(;;) {
+							++idx;
+							if(idx >= (int)acc.owner._raw.size()) {
+								DCHECK_EQ(acc.owner._raw.size(), idx);
+								//idx = Key();
+								break;
+							}
+							if(acc.owner._raw[idx].exists) break;
+						}
+					}
+					else {
+						for(;;) {
+							--idx;
+							if(idx < 0) {
+								DCHECK_EQ(-1, idx);
+								//idx = Key();
+								break;
+							}
+							if(acc.owner._raw[idx].exists) break;
+						}
+					}
+
+					return idx;
+				}
+
+
+			private:
+				Link(Accessor_Base& a) : acc(a) {}
+				friend Accessor_Base;
+				Accessor_Base& acc;
+			};
+
 
 		public:
 			Exists exists;
 
+			Link<false> prev;
+			Link<true>  next;
 
 			void erase() {
 				static_assert(ERASABLE, "can't erase, Dense_Map declared not Erasable");
@@ -372,7 +466,9 @@ namespace Dense_Map {
 					key(i + o.get_offset()),
 					val(val.create(o._raw[i].value)),
 					//value(o._raw[i].value),
-					exists(o,i),
+					exists(*this),
+					prev(*this),
+					next(*this),
 					owner(o),
 					_idx(i) {}
 

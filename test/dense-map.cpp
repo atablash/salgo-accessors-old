@@ -265,6 +265,27 @@ TEST(Deque_dense_map, iterate_and_erase) {
 	EXPECT_EQ(2, m.size());
 }
 
+TEST(Deque_dense_map, iterate_and_erase_next) {
+
+	Dense_Map<int> m = {-1, 2, -3, 4, -12, 3, 5, 5};
+
+	EXPECT_EQ(8, m.size());
+
+	for(auto e : m) {
+		while(e.next().exists && e >= e.next()) {
+			e.next().erase();
+		}
+	}
+
+	int sum = 0;
+	for(const auto& e : m) {
+		sum += e;
+	}
+	EXPECT_EQ(10, sum);
+
+	EXPECT_EQ(4, m.size());
+}
+
 
 TEST(Deque_dense_map, construction_1) {
 
@@ -737,11 +758,9 @@ TEST(Performance, Vector_dense_map_noerase) {
 	long long other_result = 0;
 
 	for(int iter = 0; iter < iters; ++iter) {
-
 		
 		{
 			auto t0 = steady_clock::now();
-
 
 			Dense_Map<int>::BUILDER::Vector::BUILD m;
 
@@ -771,7 +790,6 @@ TEST(Performance, Vector_dense_map_noerase) {
 
 			duration<double> dur = steady_clock::now() - t0;
 			other_time += dur.count();
-
 		}
 	}
 
@@ -782,7 +800,7 @@ TEST(Performance, Vector_dense_map_noerase) {
 	EXPECT_EQ(my_result, other_result);
 
 	//EXPECT_LT(my_time, other_time); // it's actually less... (?!) in g++-7
-	EXPECT_LT(my_time, other_time*3); // for clang++-5.0
+	EXPECT_LT(my_time, other_time*4); // for clang++-5.0
 }
 
 

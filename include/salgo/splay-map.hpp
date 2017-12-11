@@ -3,13 +3,14 @@
 
 
 namespace salgo {
-
+namespace internal {
+namespace Splay_Map {
 
 template<
 	class KEY,
 	class VAL,
 	class COMP = std::less<KEY>,
-	template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE
+	template<Const_Flag,class> class FINAL_ACCESSOR_TEMPLATE
 >
 class Splay_Map {
 public:
@@ -62,6 +63,10 @@ public:
 		return Inorder(tree).end();
 	}
 };
+
+
+} // namespace Splay_Map
+} // namespace internal
 
 
 
