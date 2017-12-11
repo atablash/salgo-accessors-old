@@ -35,7 +35,7 @@ namespace Binary_Tree {
 	//
 	template<
 		class T,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class ACCESSOR_TEMPLATE,
 		class AGGREG,
 		class PROPAG,
 		bool ERASABLE,
@@ -49,7 +49,7 @@ namespace Binary_Tree {
 
 	template<
 		class T,
-		template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class FINAL_ACCESSOR_TEMPLATE,
 		class AGGREG,
 		class PROPAG,
 		bool ERASABLE,
@@ -108,15 +108,15 @@ namespace Binary_Tree {
 
 
 
-		template<Const_Flag C, class OWNER, class BASE>
+		template<Const_Flag C, class BASE>
 		class Accessor_Template;
 
 
 
-		template<Const_Flag C, class OWNER, class BASE, bool child, int ith = 0>
+		template<Const_Flag C, class BASE, bool child, int ith = 0>
 		class Link {
 		private:
-			using Accessor = Accessor_Template<C,OWNER,BASE>;
+			using Accessor = Accessor_Template<C,BASE>;
 
 		public:
 			inline auto operator()() const {
@@ -135,7 +135,7 @@ namespace Binary_Tree {
 			}
 
 			template<Const_Flag CC, bool ch = child, class = std::enable_if_t<ch>>
-			inline void link(Accessor_Template<CC,OWNER,BASE>& other) {
+			inline void link(Accessor_Template<CC,BASE>& other) {
 				if constexpr(EVERSIBLE) {
 					DCHECK(acc().val().evert == false) << "need to evert_propagate first";
 				}
@@ -204,10 +204,10 @@ namespace Binary_Tree {
 
 
 
-		template<Const_Flag C, class OWNER, class BASE, int ith>
+		template<Const_Flag C, class BASE, int ith>
 		class Link_Test {
 		private:
-			using Accessor = Accessor_Template<C,OWNER,BASE>;
+			using Accessor = Accessor_Template<C,BASE>;
 
 		public:
 			inline operator bool() const {
@@ -228,26 +228,27 @@ namespace Binary_Tree {
 
 
 
-		template<Const_Flag C, class OWNER, class BASE>
+		template<Const_Flag C, class BASE>
 		class Accessor_Template : public BASE,
-				public Acc_Add_parent<PARENT_LINKS, Link<C, OWNER, BASE, false>> {
+				public Acc_Add_parent<PARENT_LINKS, Link<C, BASE, false>> {
 
 		private:
-			using BASE_PARENT = Acc_Add_parent<PARENT_LINKS, Link<C, OWNER, BASE, false>>;
+			using BASE_PARENT = Acc_Add_parent<PARENT_LINKS, Link<C, BASE, false>>;
 
 		public:
 			static constexpr auto Eversible = EVERSIBLE;
 
 		private:
 			template<bool child, int ith = 0>
-			using My_Link = Link<C, OWNER, BASE, child, ith>;
+			using My_Link = Link<C, BASE, child, ith>;
 
 			template<int ith>
-			using My_Link_Test = Link_Test<C, OWNER, BASE, ith>;
+			using My_Link_Test = Link_Test<C, BASE, ith>;
 
 		public:
 			using Context = Const<My_Binary_Tree,C>&;
 			using BASE::operator=;
+			using typename BASE::Owner;
 
 		public:
 			My_Link<true,0> left;
@@ -332,7 +333,7 @@ namespace Binary_Tree {
 			}
 
 		protected:
-			Accessor_Template( Context& c, Const<OWNER,C>& o, int i)
+			Accessor_Template( Context& c, Const<Owner,C>& o, int i)
 					: BASE(o, i),
 					BASE_PARENT(*this),
 					left(*this),
@@ -353,8 +354,8 @@ namespace Binary_Tree {
 
 
 
-		template<Const_Flag C, class OWNER, class BASE>
-		using Aggregate_Accessor_Template = FINAL_ACCESSOR_TEMPLATE<C, OWNER, Accessor_Template<C,OWNER,BASE> >;
+		template<Const_Flag C, class BASE>
+		using Aggregate_Accessor_Template = FINAL_ACCESSOR_TEMPLATE<C, Accessor_Template<C,BASE> >;
 
 
 		using Storage = typename salgo::Storage<Vert>::BUILDER
@@ -404,7 +405,7 @@ namespace Binary_Tree {
 	//
 	template<
 		class T,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class ACCESSOR_TEMPLATE,
 		class AGGREG,
 		class PROPAG,
 		bool ERASABLE,
@@ -444,7 +445,7 @@ namespace Binary_Tree {
 	//
 	template<
 		class T,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class ACCESSOR_TEMPLATE,
 		class AGGREG,
 		class PROPAG,
 		bool IMPLICIT,
@@ -459,7 +460,7 @@ namespace Binary_Tree {
 			Binary_Tree<T, ACCESSOR_TEMPLATE, AGGREG, PROPAG, ERASABLE, EVERSIBLE, PARENT_LINKS>
 		>;
 
-		template<template<Const_Flag,class,class> class NEW_ACCESSOR_TEMPLATE>
+		template<template<Const_Flag,class> class NEW_ACCESSOR_TEMPLATE>
 		using Accessor_Template =
 			Builder<T, NEW_ACCESSOR_TEMPLATE, AGGREG, PROPAG, IMPLICIT, ERASABLE, EVERSIBLE, PARENT_LINKS>;
 

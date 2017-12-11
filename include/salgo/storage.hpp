@@ -67,7 +67,7 @@ namespace Storage {
 	template<
 		class T,
 		Type TYPE,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class ACCESSOR_TEMPLATE,
 		bool ERASABLE
 	>
 	using Dense_Map_Base = typename std::conditional_t<	ERASABLE,
@@ -94,7 +94,7 @@ namespace Storage {
 	template<
 		class T,
 		Type TYPE,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class ACCESSOR_TEMPLATE,
 		bool ERASABLE
 	>
 	class Storage : public Dense_Map_Base<T, TYPE, ACCESSOR_TEMPLATE, ERASABLE> {
@@ -139,7 +139,7 @@ namespace Storage {
 	template<
 		class T,
 		Type TYPE,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class ACCESSOR_TEMPLATE,
 		bool ERASABLE
 	>
 	class Builder {
@@ -156,7 +156,7 @@ namespace Storage {
 
 		using Erasable = Builder<T, TYPE, ACCESSOR_TEMPLATE, true>;
 		
-		template<template<Const_Flag,class,class> class NEW_TMPL>
+		template<template<Const_Flag,class> class NEW_TMPL>
 		using Accessor_Template = Builder<T, TYPE, NEW_TMPL, ERASABLE>;
 
 	};

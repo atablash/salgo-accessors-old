@@ -126,11 +126,14 @@ You can extend Salgo containers' accessors with custom functionality.
 Below you can see an example from the Smesh library. Dense_Map's accessor is extended to provide an interface for underlying triangle mesh vertices:
 
 ```cpp
-	template<Const_Flag C, class OWNER, class BASE>
+	template<Const_Flag C, class BASE>
 	class A_Vert_Template : public BASE {
 	public:
 		// Support assignment (handled by BASE):
 		using BASE::operator=;
+
+		// inherit Owner alias - this will be the Dense_Map type
+		using typename BASE::Owner;
 
 		// Keep a reference to the mesh object
 		using Context = Const<Smesh,C>&; // keep a reference to the mesh object
@@ -152,14 +155,18 @@ Below you can see an example from the Smesh library. Dense_Map's accessor is ext
 			BASE::erase();
 		}
 
-		A_Vert_Template( Context m, Const<OWNER,C>& o, const int i) : BASE(o, i),
+		A_Vert_Template( Context m, Const<Owner,C>& o, const int i) : BASE(o, i),
 				pos( o.raw(i).pos ),
 				props( o.raw(i) ),
 				poly_links(m, i) {}
 	};
 ```
 
-Here you can see the *2-way CRTP* pattern in action: both your derived class and base class know about each other.
+Here you can see the a variant of *CRTP* pattern with template injection in action: because the base class (`Dense_Map<A_Vert_Template, ...>::Accessor_Base`) has a template dependency on the derived class that we just defined, `A_Vert_Template` will be passed to Dense_Map as a template template argument, and will be instantiated there later, in the base's context.
+
+This has other advantages too:
+* `A_Vert_Template` is a template that takes a `Const_Flag` anyway (and we avoid tricks similar to std::allocator<...>::rebind)
+* `A_Vert_Template` can be reused with different base accessors (as is Index_Accessor_Template)
 
 In the above example, you can see an extension to the `Dense_Map` that exposes some additional interface:
 * `pos`: a pseudo-reference to vertex position
@@ -169,9 +176,7 @@ In the above example, you can see an extension to the `Dense_Map` that exposes s
 
 Template arguments are:
 * `Const_Flag C`: will be instantiated with either `MUTAB` or `CONST`, for forcing pointed object (vertex in this case) *const*-ness
-* `OWNER`: it's a reference to the *Dense_Map* object
-	* Technically it's the parent part of the context; the design decision was to keep them separate though, for simplicity
-* `BASE`: that's our base, for the *2-way CRTP*
+* `BASE`: that's our base (parent) accessor, `Dense_Map<...>::Accessor_Base` in this case
 
 There are some helper classes / alias templates:
 * `Const<class T, Const_Flag>`: resolves to either `T` or `const T`
@@ -180,7 +185,9 @@ There are some helper classes / alias templates:
 
 If you don't want any extra context, remove the `using Context = ...` line, and the first argument of the constructor (`Context m`).
 
-If you need multiple level accessor inheritance, see how *2-way CRTP* chaining is implemented in *Binary_Tree*. If the most derived accessor needs some additional context, it must aggregate it with the parent context, e.g. `using Context = std::pair<Child_Context, BASE::Context>`.
+Note that BASE::Owner is conceptually a parent part of the accessor context. However, the design decision was to separate it from the optional user context for simplicity.
+
+If you need multiple level accessor inheritance, see how accessor templates chaining is implemented in *Binary_Tree*. If the most derived accessor needs some additional context, it must aggregate it with the parent context, e.g. `using Context = std::pair<Child_Context, BASE::Context>`.
 
 To use your new accessor with the *Dense_Map*:
 
@@ -190,9 +197,25 @@ To use your new accessor with the *Dense_Map*:
 ```
 
 
-#### The *2-way CRTP* Pattern
+#### Template Injection
 
-In case you're wondering, what this is
+As a side note, here's a simple example of how this resolves circular template dependencies:
+
+```cpp	
+	template<class B>
+	struct A {
+		B* b;
+	};
+
+
+	template<template<class> class A_TEMPLATE>
+	struct B {
+		using A = A_TEMPLATE< B >;
+		A* a;
+	};
+```
+
+Now you can instantiate `A<B<A>>` and `B<A>` and there's no circular dependency.
 
 
 

@@ -75,7 +75,7 @@ namespace Dense_Map {
 		class VALUE_OR_KEY,
 		class VOID_OR_VALUE,
 		Type TYPE,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class ACCESSOR_TEMPLATE,
 		bool ERASABLE
 	>
 	class Dense_Map :
@@ -95,7 +95,7 @@ namespace Dense_Map {
 		using Container = std::conditional_t<TYPE == Type::VECTOR, std::vector<Node>, std::deque<Node>>;
 
 		template<Const_Flag C>
-		using Accessor = ACCESSOR_TEMPLATE<C, Dense_Map, Accessor_Base<C>>;
+		using Accessor = ACCESSOR_TEMPLATE<C, Accessor_Base<C>>;
 
 
 	private:
@@ -272,6 +272,7 @@ namespace Dense_Map {
 		class Accessor_Base {
 		public:
 			using Context = void; // derived can override
+			using Owner = Dense_Map;
 
 		public:
 			const Key key;
@@ -552,7 +553,7 @@ namespace Dense_Map {
 		class Value_Or_Key,
 		class Void_Or_Value,
 		Type TYPE,
-		template<Const_Flag,class,class> class ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class ACCESSOR_TEMPLATE,
 		bool ERASABLE
 	>
 	class Builder {
@@ -569,7 +570,7 @@ namespace Dense_Map {
 		using Erasable
 			= Builder<Value_Or_Key, Void_Or_Value, TYPE, ACCESSOR_TEMPLATE, true>;
 		
-		template<template<Const_Flag,class,class> class NEW_TMPL>
+		template<template<Const_Flag,class> class NEW_TMPL>
 		using Accessor_Template
 			= Builder<Value_Or_Key, Void_Or_Value, TYPE, NEW_TMPL, ERASABLE>;
 

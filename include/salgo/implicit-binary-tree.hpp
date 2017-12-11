@@ -17,7 +17,7 @@ namespace Binary_Tree {
 	//
 	template<
 		class VALUE,
-		template<Const_Flag,class,class> class FINAL_ACCESSOR_TEMPLATE,
+		template<Const_Flag,class> class FINAL_ACCESSOR_TEMPLATE,
 		bool ERASABLE,
 		bool EVERSIBLE
 	>
@@ -82,22 +82,20 @@ namespace Binary_Tree {
 	// Accessor_Template   <- Link
 	//
 	public:
-		template<Const_Flag C, class OWNER, class BASE>
+		template<Const_Flag C, class BASE>
 		class Accessor_Template : public BASE {
 		public:
-			using Context = void;
-
-		public:
 			using BASE::operator=;
+			using typename BASE::Owner;
 
 		public:
-			using Derived = FINAL_ACCESSOR_TEMPLATE<C, OWNER, Accessor_Template>;
+			using Derived = FINAL_ACCESSOR_TEMPLATE<C, Accessor_Template>;
 
 
 		private:
 
 		public:
-			Link<C, OWNER> parent, left, right;
+			Link<C, Owner> parent, left, right;
 
 		private:
 			inline auto get_child_idx(int child) {
@@ -116,7 +114,7 @@ namespace Binary_Tree {
 
 
 		protected:
-			Accessor_Template( Const<OWNER,C>& o, int i) : BASE(o, i),
+			Accessor_Template( Const<Owner,C>& o, int i) : BASE(o, i),
 				parent(o,  i >> 1),
 				left  (o, (i << 1) + get_child_idx(0)),
 				right (o, (i << 1) + get_child_idx(1)) {}
@@ -139,8 +137,8 @@ namespace Binary_Tree {
 		};
 
 
-		template<Const_Flag C, class OWNER, class BASE>
-		using Aggregate_Accessor_Template = typename Accessor_Template<C, OWNER, BASE>::Derived;
+		template<Const_Flag C, class BASE>
+		using Aggregate_Accessor_Template = typename Accessor_Template<C, BASE>::Derived;
 
 		using _Builder_1 = typename salgo::Dense_Map<Vert> :: BUILDER
 			:: Vector

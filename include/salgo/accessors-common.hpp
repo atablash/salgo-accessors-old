@@ -93,23 +93,24 @@ namespace internal {
 
 
 
-template<Const_Flag C, class OWNER, class BASE>
+template<Const_Flag C, class BASE>
 class Index_Accessor_Template : public BASE {
+public:
+	using typename BASE::Owner;
+	using BASE::operator=;
+	friend Owner;
 
+private:
 	// with context
 	template<class B = BASE, class = std::enable_if_t<!std::is_same_v<typename B::Context, void>>>
-	Index_Accessor_Template(typename B::Context& c, Const<OWNER,C>& o, int i)
+	Index_Accessor_Template(typename B::Context& c, Const<Owner,C>& o, int i)
 			: BASE(c, o, i) {}
 
 	// without context
 	template<class B = BASE, class = std::enable_if_t<std::is_same_v<typename B::Context, void>>>
-	Index_Accessor_Template(Const<OWNER,C>& o, int i)
+	Index_Accessor_Template(Const<Owner,C>& o, int i)
 			: BASE(o, i) {}
 
-public:
-	using BASE::operator=;
-
-	friend OWNER;
 };
 
 
