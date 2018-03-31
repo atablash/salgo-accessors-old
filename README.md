@@ -201,6 +201,9 @@ In the above example, `e.val` is still not the underlying `double` or reference 
 	cout << dm[5].val().member << endl;
 ```
 
+> **NOTE**
+> The reason of using a proxy object is to make Salgo *const*-correct.
+
 
 ### A Story Behind Accessors
 
