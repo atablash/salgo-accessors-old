@@ -202,9 +202,9 @@ In the above example, `e.val` is still not the underlying `double` or reference 
 ```
 
 
-### Story Behind Accessors
+### A Story Behind Accessors
 
-Let's talk about **pointers** in *C*.
+Let's take a look at **pointers** in *C*.
 
 _Pointing_ object *const*-ness is different than *pointed* object *const*-ness:
 * `const int*` (or `int const*`) is a pointer to `const int`
