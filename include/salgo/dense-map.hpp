@@ -468,7 +468,7 @@ namespace Dense_Map {
 		protected:
 			Accessor_Base( Const<Dense_Map,C>& o, Key i) :
 					key(i + o.get_offset()),
-					val(val.create(o._raw[i].value)),
+					val(o._raw[i].value),
 					//value(o._raw[i].value),
 					exists(o,i),
 					prev(o,i),
