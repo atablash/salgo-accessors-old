@@ -278,7 +278,7 @@ namespace Dense_Map {
 			const Key key;
 
 			// 2 names for the same thing...
-			//Const<Value,C>& raw;
+			//Proxy<Value,C>& raw;
 			Proxy<Value,C> val;
 
 
