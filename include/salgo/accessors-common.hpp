@@ -58,12 +58,13 @@ public:
 		return ref = o;
 	}
 
-public:
-	static auto create(Const<T,C>& r) {
-		return Proxy(r);
-	}
 
-private:
+	// try to avoid accidental constructions. but this will still compile, so be careful:
+	// auto new_proxy(old_proxy)
+	explicit Proxy(const Proxy&) = default;
+
+
+public:
 	explicit Proxy(Const<T,C>& r) : ref(r) {}
 	Const<T,C>& ref;
 };
