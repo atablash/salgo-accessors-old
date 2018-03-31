@@ -202,6 +202,7 @@ In the above example, `e.val` is still not the underlying `double` or reference 
 ```
 
 > **NOTE**
+>
 > The reason of using a proxy object is to make Salgo *const*-correct.
 
 
