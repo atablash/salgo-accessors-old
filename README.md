@@ -203,7 +203,7 @@ In the above example, `e.val` is still not the underlying `double` or reference 
 
 > **NOTE**
 >
-> The reason of using a proxy object is to make Salgo *const*-correct.
+> The reason of using a proxy object (instead of just a reference that would avoid an extra `()`) is to make Salgo *const*-correct.
 
 
 ### A Story Behind Accessors
