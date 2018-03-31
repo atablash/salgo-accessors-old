@@ -665,11 +665,16 @@ namespace Dense_Map {
 			= Builder<Value_Or_Key, Void_Or_Value, Type::VECTOR, ACCESSOR_TEMPLATE, ERASABLE>;
 
 		using Deque
-			= Builder<Value_Or_Key, Void_Or_Value, Type::DEQUE, ACCESSOR_TEMPLATE, ERASABLE>;
+			= Builder<Value_Or_Key, Void_Or_Value, Type::DEQUE,  ACCESSOR_TEMPLATE, ERASABLE>;
 
-		using Erasable
-			= Builder<Value_Or_Key, Void_Or_Value, TYPE, ACCESSOR_TEMPLATE, true>;
+
+		using     Erasable
+			= Builder<Value_Or_Key, Void_Or_Value, TYPE,         ACCESSOR_TEMPLATE, true>;
+
+		using Not_Erasable
+			= Builder<Value_Or_Key, Void_Or_Value, TYPE,         ACCESSOR_TEMPLATE, true>;
 		
+
 		template<template<Const_Flag,class> class NEW_TMPL>
 		using Accessor_Template
 			= Builder<Value_Or_Key, Void_Or_Value, TYPE, NEW_TMPL, ERASABLE>;
