@@ -1,7 +1,6 @@
 #pragma once
 
 
-
 namespace salgo {
 namespace internal {
 namespace Splay_Map {

@@ -9,6 +9,7 @@ set(sources
 	gtest-init.cpp
 	dense-map.cpp
 	binary-tree.cpp
+	kd.cpp
 )
 
 

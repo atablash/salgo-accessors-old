@@ -59,10 +59,11 @@ if (GLOG_FOUND)
 	link_libraries(glog)
 endif ()
 
-#find_package(Eigen3 3.2 REQUIRED)
-#if (EIGEN3_FOUND)
-#	include_directories(SYSTEM ${EIGEN3_INCLUDE_DIR})
-#endif()
+
+find_package(Eigen3 3.3 REQUIRED)
+if (EIGEN3_FOUND)
+    include_directories(SYSTEM ${EIGEN3_INCLUDE_DIRS})
+endif()
 
 
 

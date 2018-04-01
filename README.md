@@ -398,3 +398,12 @@ As mentioned, Salgo is at an early stage of implementation, but hopefully will b
 If you like the library and your C++ is strong, you're more than welcome to join.
 
 When creating pull requests, make sure to include unit and performance tests for all new functionality.
+
+
+
+
+TODO
+====
+
+* Finish implementing `kd.hpp` and write tests and docs.
+* Finish implementing `splay.hpp`, `splay-map.hpp` and write tests (also for `Splay_Set`) and docs.
