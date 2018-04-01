@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/atablash/salgo-accessors-old.svg?branch=master)](https://travis-ci.org/atablash/salgo)
+[![Build Status](https://travis-ci.org/atablash/salgo-accessors-old.svg?branch=master)](https://travis-ci.org/atablash/salgo-accessors-old)
 Salgo
 =====
 
