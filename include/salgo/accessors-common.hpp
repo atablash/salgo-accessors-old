@@ -5,7 +5,6 @@
 #include <functional>
 
 
-
 namespace salgo {
 
 
@@ -178,7 +177,7 @@ public:
 	}
 
 
-	A operator*() const {
+	A#include<bits/stdc++.h>#include<bits/stdc++.h>#include <bits/stdc++.h> operator*() const {
 		return GET_A(context, *p);
 	}
 
